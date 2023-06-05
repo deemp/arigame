@@ -12,10 +12,8 @@
     codium.url = "github:deemp/flakes?dir=codium";
     haskell-tools.url = "github:deemp/flakes?dir=language-tools/haskell";
     nixpkgs-purescript.url = "github:deemp/nixpkgs";
-    purescript = {
-      url = "github:purescript/purescript";
-      flake = false;
-    };
+    workflows.url = "github:deemp/flakes?dir=workflows";
+    flakes-tools.url = "github:deemp/flakes?dir=flakes-tools";
   };
 
   outputs = inputs:
@@ -29,6 +27,8 @@
         inherit (inputs.codium.configs.${system}) extensions settingsNix;
         inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
         inherit (inputs.haskell-tools.functions.${system}) toolsGHC;
+        inherit (inputs.flakes-tools.functions.${system}) mkFlakesTools;
+        inherit (inputs) workflows;
         inherit (builtins) attrValues;
 
         scripts = mkShellApps {
@@ -57,6 +57,11 @@
             runtimeDependencies = tools;
           };
           writeSettings = writeSettingsJSON settingsNix;
+          writeWorkflows = import ./nix-files/workflow.nix {
+            name = "ci";
+            inherit workflows system;
+          };
+          inherit (mkFlakesTools [ "." ]) updateLocks;
         } // scripts;
 
         devShells.default = mkShell {
