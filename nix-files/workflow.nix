@@ -23,11 +23,8 @@ let
             ];
         };
         "${job2}" =
-          let
-            dir = "front";
-          in
           {
-            name = "Publish front";
+            name = "Publish static files";
             # needs = job1;
             runs-on = os.ubuntu-20;
             steps = [

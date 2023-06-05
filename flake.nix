@@ -1,5 +1,5 @@
 {
-  description = "Try-phi front end";
+  description = "Calculator game written using Halogen in PureScript";
 
   inputs = {
     nixpkgs_.url = "github:deemp/flakes?dir=source-flake/nixpkgs";
@@ -34,7 +34,7 @@
         scripts = mkShellApps {
           default = {
             text = "${pkgs.nodejs_18}/bin/npm run quick-start";
-            description = "Run front";
+            description = "Run dev";
           };
           buildGHPages = {
             text = ''${pkgs.nodejs_18}/bin/npm run build:gh-pages'';
