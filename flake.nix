@@ -35,9 +35,14 @@
           default = {
             text = "${pkgs.nodejs_18}/bin/npm run quick-start";
             description = "Run dev";
+            runtimeInputs = [ pkgs.nodejs_18 pkgs.spago pkgs-purescript.purescript ];
           };
           buildGHPages = {
-            text = ''${pkgs.nodejs_18}/bin/npm run build:gh-pages'';
+            text = ''
+              npm cache clean --force
+              npm run build:gh-pages
+            '';
+            runtimeInputs = [ pkgs.nodejs_18 pkgs.spago pkgs-purescript.purescript ];
             description = "Build GitHub Pages";
           };
         };
