@@ -1,5 +1,5 @@
 {
-  description = "Calculator game written using Halogen in PureScript";
+  description = "Calculator game written in PureScript using Halogen";
 
   inputs = {
     nixpkgs_.url = "github:deemp/flakes?dir=source-flake/nixpkgs";
