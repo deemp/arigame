@@ -2,7 +2,7 @@
 let
   inherit (workflows.functions.${system}) writeWorkflow expr mkAccessors genAttrsId;
   inherit (workflows.configs.${system}) steps os nixCI;
-  inherit (workflows.functions.${system}) installNix;
+  inherit (workflows.functions.${system}) installNix cacheNixDirs;
   job1 = "_1_update_flake_locks";
   job2 = "_2_front";
   names = mkAccessors {
@@ -26,10 +26,34 @@ let
           {
             name = "Publish static files";
             # needs = job1;
+            permissions = {
+              contents = "write";
+            };
             runs-on = os.ubuntu-20;
             steps = [
               steps.checkout
               (installNix { })
+              (cacheNixDirs { restoreOnly = false; })
+              {
+                name = "Clean npm cache";
+                run = ''nix run .#npmCleanCache'';
+              }
+              {
+                name = "Cache dependencies";
+                uses = "actions/cache@v3";
+                env = {
+                  cache-name = "cache-deps";
+                };
+                "with" = {
+                  key = "\${{ runner.os }}-build-\${{ env.cache-name }}-\${{ hashFiles('**/package.json') }}-\${{ hashFiles('**/*.dhall') }}";
+                  path = [ "~/.npm" ".spago" "output" ];
+                  restore-keys = ''
+                    ''${{ runner.os }}-build-''${{ env.cache-name }}-
+                    ''${{ runner.os }}-build-
+                    ''${{ runner.os }}-
+                  '';
+                };
+              }
               {
                 name = "Build";
                 run = ''nix run .#buildGHPages'';

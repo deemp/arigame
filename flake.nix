@@ -37,11 +37,11 @@
             description = "Run dev";
             runtimeInputs = [ pkgs.nodejs_18 pkgs.spago pkgs-purescript.purescript ];
           };
+          npmCleanCache = {
+            text = ''${pkgs.nodejs_18}/bin/npm cache clean --force'';
+          };
           buildGHPages = {
-            text = ''
-              npm cache clean --force
-              npm run build:gh-pages
-            '';
+            text = ''npm run build:gh-pages'';
             runtimeInputs = [ pkgs.nodejs_18 pkgs.spago pkgs-purescript.purescript ];
             description = "Build GitHub Pages";
           };
