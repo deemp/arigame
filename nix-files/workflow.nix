@@ -45,8 +45,12 @@ let
                   cache-name = "cache-deps";
                 };
                 "with" = {
-                  key = "\${{ runner.os }}-build-\${{ env.cache-name }}-\${{ hashFiles('**/package.json') }}-\${{ hashFiles('**/*.dhall') }}";
-                  path = [ "~/.npm" ".spago" "output" ];
+                  key = "\${{ runner.os }}-build-\${{ env.cache-name }}-\${{ hashFiles('**/package-lock.json') }}-\${{ hashFiles('**/*.dhall') }}";
+                  path = ''
+                    ~/.npm
+                    .spago
+                    output
+                  '';
                   restore-keys = ''
                     ''${{ runner.os }}-build-''${{ env.cache-name }}-
                     ''${{ runner.os }}-build-
