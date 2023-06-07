@@ -24,7 +24,7 @@
         shellTools = inputs.purescript-tools.shellTools.${system};
         inherit (inputs.devshell.functions.${system}) mkShell mkCommands mkRunCommands;
         inherit (inputs.drv-tools.functions.${system}) mkShellApps mkBin;
-        inherit (inputs.codium.configs.${system}) extensions settingsNix;
+        inherit (inputs.codium.configs.${system}) extensions settingsNix settingsNixCommon;
         inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
         inherit (inputs.haskell-tools.functions.${system}) toolsGHC;
         inherit (inputs.flakes-tools.functions.${system}) mkFlakesTools;
@@ -61,7 +61,7 @@
             extensions = { inherit (extensions) nix misc github markdown purescript; };
             runtimeDependencies = tools;
           };
-          writeSettings = writeSettingsJSON settingsNix;
+          writeSettings = writeSettingsJSON (settingsNixCommon // { inherit (settingsNix) vscode-dhall-lsp-server ide-purescript; });
           writeWorkflows = import ./nix-files/workflow.nix {
             name = "ci";
             inherit workflows system;
@@ -74,7 +74,16 @@
           commands =
             mkCommands "tools" tools ++
             mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
-            mkRunCommands "scripts" { inherit (packages) default buildGHPages; }
+            mkRunCommands "scripts" { inherit (packages) default buildGHPages; } ++ [
+              {
+                name = "npm run sass";
+                help = "sass watch .sass files and generate CSS";
+              }
+              {
+                name = "npm run dev";
+                help = "parcel watch files and reload browser window";
+              }
+            ]
           ;
         };
       in

@@ -17,3 +17,4 @@ dist
 .direnv
 bin
 .vscode
+dev/styles.css.map

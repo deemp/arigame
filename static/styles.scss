@@ -1,0 +1,301 @@
+@use "sass:map";
+
+$min-widths: (
+  xs: 0px,
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1200px,
+  xxl: 1400px,
+);
+
+@mixin screen($name, $header, $keyboard, $settings-pane) {
+  $min-width: map.get($min-widths, $name);
+
+  /* #{$name} */
+  @media (min-width: $min-width) {
+    .header {
+      i {
+        font-size: map.get($header, icon-font-size);
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &.settings {
+          color: #002365ee;
+          -webkit-text-stroke: 1px;
+
+          &:hover {
+            color: #002365;
+          }
+        }
+
+        &.correct {
+          color: green;
+        }
+
+        &.incorrect {
+          color: red;
+        }
+      }
+
+      button.settings {
+        --bs-btn-border-color: none;
+      }
+
+      p.counter {
+        font-size: 30px;
+      }
+    }
+
+    .exercise {
+      font-size: 50px;
+    }
+
+    .keyboard {
+      button {
+        width: map.get($keyboard, side);
+        height: map.get($keyboard, side);
+        font-size: map.get($keyboard, font-size);
+        max-width: 100%;
+        max-height: 100%;
+      }
+    }
+
+    .settings-pane {
+      $button: map.get($settings-pane, button);
+      $side: map.get($button, side);
+
+      button {
+        &.exercise {
+          position: relative;
+
+          // padding: 0.5em 1em;
+          // border-color: #3e7ad48c
+          // border-radius: 0.5em
+          // background-color: white
+          // color: #004ec4
+          height: $side;
+          width: $side;
+
+          font-size: map.get($button, font-size);
+          // box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
+          // cursor: pointer
+
+          // &:active
+          // background-color: #3e7ad48c
+          // color: white
+          // &:hover {
+          //   border-color: #0b5dd78c;
+          //   box-shadow: 0 0 0 0.2rem #007bff40;
+          // }
+        }
+      }
+
+      .bound {
+        $bound: map.get($settings-pane, bound);
+
+        input {
+          height: $side;
+          font-size: map.get(map.get($bound, input), font-size);
+        }
+
+        label {
+          $label: map.get($bound, label);
+          font-size: map.get($label, font-size);
+          // line-height: 1.5;
+        }
+      }
+
+      //     align-items: center
+
+      // label
+      // font-size: map.get(map.get($settings, label), font-size)
+      // font-size: map.get($settings, font-size)
+
+      // .form-control:focus {
+      //   // border-color: #28a745
+      //   box-shadow: 0 0 0 0.2rem #007bff40;
+      //   ~ label {
+      //     color: 0 0 0 0.2rem #007bff40;
+      //     transform: scale(0.7) translateY(-0.5rem) translateX(0.15rem);
+          
+      //     &::after {
+      //       // position: absolute;
+      //       // inset: $form-floating-padding-y ($form-floating-padding-x * .5);
+      //       // z-index: -1;
+      //       // height: $form-floating-label-height;
+      //       // height: 30px;
+      //       // content: "";
+      //       // background-color: $input-bg;
+      //       // @include border-radius($input-border-radius);
+      //     }
+      //   }
+      // }
+    }
+  }
+}
+
+@include screen(
+  $name: xs,
+  $header: (
+    icon-font-size: 30,
+  ),
+  $keyboard: (
+    side: 55,
+    font-size: 27,
+  ),
+  $settings-pane: (
+    button: (
+      side: 50,
+      font-size: 20,
+    ),
+    bound: (
+      input: (
+        font-size: 18,
+      ),
+      label: (
+        font-size: 18,
+        after: (
+          font-size: 8,
+        ),
+      ),
+    ),
+  )
+);
+@include screen(
+  $name: sm,
+  $header: (
+    icon-font-size: 40,
+  ),
+  $keyboard: (
+    side: 75,
+    font-size: 35,
+  ),
+  $settings-pane: (
+    button: (
+      side: 65,
+      font-size: 30,
+    ),
+    bound: (
+      input: (
+        font-size: 20,
+      ),
+      label: (
+        font-size: 20,
+        after: (
+          font-size: 20,
+        ),
+      ),
+    ),
+  )
+);
+@include screen(
+  $name: md,
+  $header: (
+    icon-font-size: 45,
+  ),
+  $keyboard: (
+    side: 75,
+    font-size: 35,
+  ),
+  $settings-pane: (
+    button: (
+      side: 75,
+      font-size: 30,
+    ),
+    bound: (
+      input: (
+        font-size: 20,
+      ),
+      label: (
+        font-size: 25,
+        after: (
+          font-size: 20,
+        ),
+      ),
+    ),
+  )
+);
+@include screen(
+  $name: lg,
+  $header: (
+    icon-font-size: 45,
+  ),
+  $keyboard: (
+    side: 80,
+    font-size: 35,
+  ),
+  $settings-pane: (
+    button: (
+      side: 80,
+      font-size: 35,
+    ),
+    bound: (
+      input: (
+        font-size: 20,
+      ),
+      label: (
+        font-size: 25,
+        after: (
+          font-size: 20,
+        ),
+      ),
+    ),
+  )
+);
+@include screen(
+  $name: xl,
+  $header: (
+    icon-font-size: 45,
+  ),
+  $keyboard: (
+    side: 80,
+    font-size: 35,
+  ),
+  $settings-pane: (
+    button: (
+      side: 80,
+      font-size: 35,
+    ),
+    bound: (
+      input: (
+        font-size: 20,
+      ),
+      label: (
+        font-size: 25,
+        after: (
+          font-size: 20,
+        ),
+      ),
+    ),
+  )
+);
+@include screen(
+  $name: xxl,
+  $header: (
+    icon-font-size: 50,
+  ),
+  $keyboard: (
+    side: 80,
+    font-size: 40,
+  ),
+  $settings-pane: (
+    button: (
+      side: 80,
+      font-size: 35,
+    ),
+    bound: (
+      input: (
+        font-size: 20,
+      ),
+      label: (
+        font-size: 25,
+        after: (
+          font-size: 20,
+        ),
+      ),
+    ),
+  )
+);

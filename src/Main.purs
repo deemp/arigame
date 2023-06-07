@@ -1,10 +1,12 @@
 module Main where
 
+import Halogen.Frameworks.Bootstrap hiding (show, bi)
+import Halogen.Frameworks.BootstrapIcons
 import Prelude
 
-import Classes (cButtonSquare, cCorrect, cExercise, cIcon, cIncorrect, cNohover, cSettings)
+import Classes
 import DOM.HTML.Indexed.ButtonType (ButtonType(..))
-import Data.Array (dropEnd, intercalate, zip)
+import Data.Array (concat, dropEnd, intercalate, zip)
 import Data.Lens (Lens', _Just, over, view, (%~), (<>~))
 import Data.Map (Map)
 import Data.Map as Map
@@ -19,10 +21,7 @@ import Effect.Exception (throw)
 import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
-import Halogen.Frameworks.Bootstrap (bi, btn, btnClose, btnGroup, btnSecondary, col, col10, col2, col4, col5, col8, dFlex, dGrid, formControl, formFloating, fs2, fwBolder, h75, justifyContentCenter, justifyContentEnd, justifyContentLgEnd, justifyContentLgStart, justifyContentStart, mb2, me1, ms1, mt2, offcanvas, offcanvasBody, offcanvasBottom, offcanvasHeader, offcanvasTitle, p0, p1, pb2, pe0, pe2, ps0, ps2, pt2, row, textCenter, textReset)
-import Halogen.Frameworks.BootstrapIcons (biCheckCircleFill, biDash, biGearFill, biPlus, biX)
-import Halogen.Frameworks.TablerIcons (ti, tiEqual, tiQuestionMark)
-import Halogen.HTML (HTML, IProp)
+import Halogen.HTML (IProp)
 import Halogen.HTML as HH
 import Halogen.HTML.Events (onClick, onValueChange)
 import Halogen.HTML.Properties (InputType(..), class_, classes, for, id, pattern, placeholder, tabIndex, type_)
@@ -47,7 +46,7 @@ component =
         }
     }
 
--- handleInitializez
+-- handleInitialize
 
 data Operand = OpA | OpB | OpC
 
@@ -59,50 +58,23 @@ data Operator = Plus | Minus | Multiply
 derive instance Eq Operator
 derive instance Ord Operator
 
-instance Show Operator where
-  show = case _ of
+instance HasSymbol Operator where
+  getSymbol = case _ of
     Plus -> "+"
-    Minus -> "-"
+    Minus -> "–"
     Multiply -> "×"
 
 data ComparisonOperator = Equal
 
-instance Show ComparisonOperator where
-  show = case _ of
+instance HasSymbol ComparisonOperator where
+  getSymbol = case _ of
     Equal -> "="
-
-class HasIcon a where
-  getIcon :: forall b c. a -> HTML b c
-  getIcon' :: forall b i. a -> Array ClassName -> HTML b i
-
-instance HasIcon Operator where
-  getIcon' x r = HH.i
-    ( [ classes $
-          [ ti
-          , case x of
-              Plus -> biPlus
-              Minus -> biDash
-              Multiply -> biX
-          ] <> r
-      ]
-    )
-    []
-  getIcon x = getIcon' x []
 
 data Unknown = Unknown
 
-instance HasIcon Unknown where
-  getIcon' _ r = HH.i ([ classes $ [ ti, tiQuestionMark ] <> r ]) []
-  getIcon x = getIcon' x []
-
-instance HasIcon a => HasIcon (Maybe a) where
-  getIcon' x r = maybe (getIcon' Unknown r) (\y -> getIcon' y r) x
-  getIcon x = getIcon' x []
-
-instance HasIcon ComparisonOperator where
-  getIcon' x r = case x of
-    Equal -> HH.i ([ classes $ [ ti, tiEqual ] <> r ]) []
-  getIcon x = getIcon' x []
+instance HasSymbol Unknown where
+  getSymbol = case _ of
+    Unknown -> "?"
 
 data Bound = BoundMin | BoundMax
 
@@ -219,17 +191,17 @@ error = unsafeCoerce <<< throw
 undefined :: forall a. a
 undefined = error "undefined"
 
-class HasName a where
-  getName :: a -> String
+class HasSymbol a where
+  getSymbol :: a -> String
 
-instance HasName Operand where
-  getName = case _ of
-    OpA -> "a"
-    OpB -> "b"
-    OpC -> "c"
+instance HasSymbol Operand where
+  getSymbol = case _ of
+    OpA -> "A"
+    OpB -> "Б"
+    OpC -> "В"
 
-instance HasName Bound where
-  getName = case _ of
+instance HasSymbol Bound where
+  getSymbol = case _ of
     BoundMin -> "min"
     BoundMax -> "max"
 
@@ -244,14 +216,14 @@ instance HasRuName Bound where
 mkOperandBound ∷ forall m. Operand → Bound -> Int -> H.ComponentHTML Action () m
 mkOperandBound operand bound placeholder_ =
   let
-    operandInputId = getName operand <> "-" <> getName bound
+    operandInputId = getSymbol operand <> "-" <> getSymbol bound
   in
-    HH.div [ classes [ col5, textCenter ] ]
-      [ HH.div [ classes [ formFloating, pb2 ] ]
+    HH.div [ classes [ colXxl5, colXl5, colLg5, colMd5, colSm5, col, pb0 ] ]
+      [ HH.div [ classes [ formFloating, cBound ] ]
           [ HH.input
               [ type_ InputNumber
               , pattern "^[-]0|[1-9][0-9]*$"
-              , classes [ formControl, ClassName "bound-input" ]
+              , classes [ formControl ]
               , id operandInputId
               , placeholder $ show placeholder_
               , onValueChange \inp -> BoundChanged operand bound inp
@@ -262,19 +234,21 @@ mkOperandBound operand bound placeholder_ =
           ]
       ]
 
+settingsClasses = [ cExercise, btn, btnSecondary ]
+
 mkOperandButton ∷ forall m. Operand → H.ComponentHTML Action () m
 mkOperandButton operand =
-  HH.div [ classes [ col2, textCenter, p1 ] ]
-    [ HH.div [ classes [ row, justifyContentCenter ] ]
-        [ HH.button [ classes [ cNohover ], onClick \_ -> ToggleOperand operand ]
-            [ HH.text $ getName operand
+  HH.div [ classes [ colXxl, colXl, colLg, colMd, colSm, col3, p1 ] ]
+    [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
+        [ HH.button [ classes settingsClasses, onClick \_ -> ToggleOperand operand ]
+            [ HH.text $ getSymbol operand
             ]
         ]
     ]
 
 mkOperand ∷ Operand → State → forall m. H.ComponentHTML Action () m
 mkOperand operand state =
-  HH.div [ classes [ dFlex ] ] $
+  HH.div [ classes [ dFlex, pb2, alignItemsCenter ] ] $
     let
       mkBound bound = mkOperandBound operand bound (fromMaybe 0 (Map.lookup (operand /\ bound) state.problemState.operandBoundValuePlaceholder))
     in
@@ -285,27 +259,31 @@ mkOperand operand state =
 
 mkOperators :: forall m. H.ComponentHTML Action () m
 mkOperators =
-  HH.div [ classes [ dFlex, justifyContentCenter ] ]
-    ( zip operators [ justifyContentLgEnd, justifyContentCenter, justifyContentLgStart ] <#>
-        ( \(x /\ justify) ->
-            HH.div [ classes [ col2, pb2, justify ] ]
-              [ HH.div
-                  [ classes [ dFlex, justify ] ]
-                  [ HH.button ([ classes [ cNohover ] ] <> [ onClick \_ -> ToggleOperator x ])
-                      [ getIcon x
+  HH.div [ classes [ dFlex, justifyContentCenter, pb2 ] ]
+    [ HH.div [ classes [ col ] ]
+        [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
+            ( zip operators [ justifyContentEnd, justifyContentCenter, justifyContentStart ] <#>
+                ( \(x /\ justify) ->
+                    HH.div [ classes [ colSm2, col3 ] ]
+                      [ HH.div
+                          [ classes [ dFlex, justify ] ]
+                          [ HH.button [ classes settingsClasses, onClick \_ -> ToggleOperator x ]
+                              [ HH.text $ getSymbol x
+                              ]
+                          ]
                       ]
-                  ]
-              ]
-        )
-    )
+                )
+            )
+        ]
+    ]
 
-mkComparisonOperator :: forall m. H.ComponentHTML Action () m
-mkComparisonOperator =
+mkOperatorComparison :: forall m. H.ComponentHTML Action () m
+mkOperatorComparison =
   HH.div [ classes [ dFlex, justifyContentCenter ] ]
     [ HH.div [ classes [ row, justifyContentCenter ] ]
         [ HH.div [ classes [ btnGroup, pb2 ] ]
-            [ HH.button ([ classes [ cNohover ] ])
-                [ getIcon Equal
+            [ HH.button ([ classes settingsClasses ])
+                [ HH.text $ getSymbol Equal
                 ]
             ]
         ]
@@ -327,6 +305,7 @@ mkSettings state =
         [ offcanvas
         , offcanvasBottom
         , h75
+        , cSettingsPane
         , ClassName "show"
         ]
     , tabIndex (-1)
@@ -334,20 +313,20 @@ mkSettings state =
     , ariaLabelledby offcanvasBottomLabel
     ]
     [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-        [ HH.div [ classes [ col8 ] ]
+        [ HH.div [ classes [ colXxl6, colXl8, colLg8, colMd10, colSm11, col ] ]
             [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-                [ HH.div [ classes [ offcanvasHeader, col, cSettings, ms1, me1 ] ]
-                    [ HH.h5 [ classes [ offcanvasTitle ] ] [ HH.text "Настройки" ]
+                [ HH.div [ classes [ offcanvasHeader, col, ms1, me1, pb1 ] ]
+                    [ HH.h2 [ classes [ offcanvasTitle ] ] [ HH.text "Настройки" ]
                     , HH.button [ type_ ButtonButton, classes [ btnClose, textReset ], ariaLabel "Close", dataBsDismiss "offcanvas", onClick \_ -> ToggleSettings ] []
                     ]
                 ]
-            , HH.div [ classes [ offcanvasBody ], id settingsId ]
+            , HH.div [ classes [ offcanvasBody, pt1 ], id settingsId ]
                 [ HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
-                    [ HH.div [ classes [ col, cSettings ] ]
+                    [ HH.div [ classes [ col ] ]
                         [ mkOperand OpA state
                         , mkOperators
                         , mkOperand OpB state
-                        , mkComparisonOperator
+                        , mkOperatorComparison
                         , mkOperand OpC state
                         ]
                     ]
@@ -359,28 +338,36 @@ mkSettings state =
 
 mkHeader :: forall m. State -> H.ComponentHTML Action () m
 mkHeader state =
-  HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ] $
-    [ HH.div [ classes [ col2, cIcon ] ]
-        [ HH.div [ classes [ dFlex, justifyContentEnd ] ]
-            [ HH.button [ classes [ btn, p0 ], dataBsTarget offcanvasBottomId, type_ ButtonButton, dataBsToggle "offcanvas", ariaControls "offcanvasBottom", onClick \_ -> ToggleSettings ]
-                [ HH.i [ classes [ bi, biGearFill, fs2 ] ] []
-                ]
-            ]
-        ]
-    ] <>
-      ( let
-          mkCounter cls lcounter justify =
-            HH.div [ classes [ col2, cIcon ] ]
-              [ HH.div [ classes [ dFlex, justify ] ]
-                  [ HH.i [ classes [ bi, biCheckCircleFill, pe2, cls, fs2 ] ] []
-                  , HH.span [ classes [ ClassName "exercise-counter", p0 ] ] [ HH.text (show (view lcounter state)) ]
+  HH.div [ classes [ dFlex, justifyContentCenter, p2, cHeader ] ]
+    [ HH.div [ classes [ colXxl4, colXl6, colLg8, colMd9, colSm11, col11 ] ]
+        [ HH.div [ classes [ dFlex, justifyContentCenter, alignItemsCenter ] ]
+            ( [ HH.div [ classes [ col4 ] ]
+                  [ HH.div [ classes [ dFlex, justifyContentEnd ] ]
+                      [ HH.div [ classes [ row, peXxl4, peXl4, peLg4, peMd2, peSm4, pe5 ] ]
+                          [ HH.button [ classes [ btn, p2, pt1, pb1, cSettings ], dataBsTarget offcanvasBottomId, type_ ButtonButton, dataBsToggle "offcanvas", ariaControls "offcanvasBottom", onClick \_ -> ToggleSettings ]
+                              [ HH.i [ classes [ bi, biGearFill, cSettings ] ] []
+                              ]
+                          ]
+                      ]
                   ]
-              ]
-        in
-          [ mkCounter cCorrect (p @"counterAnswersCorrect") justifyContentCenter
-          , mkCounter cIncorrect (p @"counterAnswersIncorrect") justifyContentStart
-          ]
-      )
+              ] <>
+                ( let
+                    mkCounter cls icon lcounter justify =
+                      HH.div [ classes [ col4 ] ]
+                        [ HH.div [ classes [ dFlex, justify ] ]
+                            [ HH.i [ classes [ bi, icon, p2, pe1, cls ] ] []
+                            , HH.p [ classes [ cCounter, p2, ps1, m0 ] ] [ HH.text (show (view lcounter state)) ]
+                            ]
+                        ]
+                  in
+                    [ mkCounter cCorrect biCheckCircleFill (p @"counterAnswersCorrect") justifyContentCenter
+                    , mkCounter cIncorrect biXCircleFill (p @"counterAnswersIncorrect") justifyContentStart
+                    ]
+                )
+            )
+        ]
+
+    ]
 
 mkExercise :: forall m. State -> H.ComponentHTML Action () m
 mkExercise state = do
@@ -388,10 +375,10 @@ mkExercise state = do
     renderOperand :: Operand -> H.ComponentHTML Action () m
     renderOperand op = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe "?" show (Map.lookup op state.problemState.operandValue)) ]
 
-    render_ :: forall a. Show a => String -> Lens' ProblemState (Maybe a) -> H.ComponentHTML Action () m
-    render_ def l = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe def show (view l state.problemState)) ]
-  HH.div [ classes [ row, justifyContentCenter, pt2, pb2 ] ]
-    [ HH.div [ classes [ col10 ] ]
+    render_ :: forall a. HasSymbol a => String -> Lens' ProblemState (Maybe a) -> H.ComponentHTML Action () m
+    render_ def l = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe def getSymbol (view l state.problemState)) ]
+  HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
+    [ HH.div [ classes [ colLg10, colSm12 ] ]
         [ HH.div [ classes [ fwBolder, textCenter, cExercise ] ]
             [ HH.p [ classes [ mt2, mb2 ] ]
                 [ renderOperand OpA
@@ -406,24 +393,30 @@ mkExercise state = do
 
 mkKeyboard :: forall m. H.ComponentHTML Action () m
 mkKeyboard =
-  HH.div [ classes [ row, justifyContentCenter ] ]
-    [ HH.div [ classes [ col4 ] ]
-        ( [ 0, 1, 2 ] <#>
-            ( \i -> HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
-                ( [ 1, 2, 3 ] <#>
-                    ( \j -> HH.div [ classes [ col2, dGrid, justifyContentCenter ] ]
-                        [ let
-                            n = i * 3 + j
-                          in
-                            HH.button [ classes [ btn, btnSecondary, cButtonSquare, ps0, pe0 ], onClick \_ -> NumberButtonClicked (ButtonId n) ]
-                              [ HH.text $ show n
-                              ]
-                        ]
-                    )
+  let
+    buttonClasses = [ btn, btnSecondary, cButtonSquare, p1, m1 ]
+    mkElement e = HH.div [ classes [ col, p0 ] ] [ HH.div [ classes [ dFlex, justifyContentCenter, pb2 ] ] [ e ] ]
+    mkNumberButton n =
+      mkElement $ HH.button [ classes buttonClasses, onClick \_ -> NumberButtonClicked (ButtonId n) ]
+        [ HH.text $ show n
+        ]
+  in
+    HH.div [ classes [ dFlex, justifyContentCenter, cKeyboard ] ]
+      [ HH.div [ classes [ colXxl3, colXl4, colLg5, colMd5, colSm7, col10 ] ]
+          [ HH.div [ classes [ row, rowCols3, justifyContentCenter ] ] $
+              ( concat $ [ 0, 1, 2 ] <#> (\i -> [ 1, 2, 3 ] <#> (\j -> mkNumberButton (i * 3 + j)))
+              ) <>
+                ( [ mkElement $ HH.button [ classes buttonClasses, onClick \_ -> DeleteButtonClicked ]
+                      [ HH.i [ classes [ bi, biBackspaceFill ] ] []
+                      ]
+                  , mkNumberButton 0
+                  , mkElement $ HH.button [ classes buttonClasses, onClick \_ -> MinusButtonClicked ]
+                      [ HH.text $ getSymbol Minus
+                      ]
+                  ]
                 )
-            )
-        )
-    ]
+          ]
+      ]
 
 root :: forall m. State -> H.ComponentHTML Action () m
 root state =
