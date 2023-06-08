@@ -29,7 +29,7 @@ $min-widths: (
           -webkit-text-stroke: 1px;
 
           &:hover {
-            color: $color-dark
+            color: $color-dark;
           }
         }
 
@@ -88,7 +88,7 @@ $min-widths: (
           // padding: 0.5em 1em;
           // border-color: #dee2e6;
           border-radius: 0.5em;
-          border-width: 2;
+          border-width: 2px;
           border-color: #dee2e6;
 
           color: black;
@@ -118,7 +118,6 @@ $min-widths: (
         label {
           $label: map.get($bound, label);
           font-size: map.get($label, font-size);
-          // line-height: 1.5;
         }
       }
 
@@ -154,23 +153,23 @@ $min-widths: (
 @include screen(
   $name: xs,
   $header: (
-    icon-font-size: 30,
+    icon-font-size: 30px,
   ),
   $keyboard: (
-    side: 55,
-    font-size: 27,
+    side: 55px,
+    font-size: 27px,
   ),
   $settings-pane: (
     button: (
-      side: 50,
-      font-size: 20,
+      side: 50px,
+      font-size: 20px,
     ),
     bound: (
       input: (
-        font-size: 18,
+        font-size: 18px,
       ),
       label: (
-        font-size: 18,
+        font-size: 18px,
         after: (
           font-size: 8,
         ),
@@ -181,25 +180,25 @@ $min-widths: (
 @include screen(
   $name: sm,
   $header: (
-    icon-font-size: 40,
+    icon-font-size: 40px,
   ),
   $keyboard: (
-    side: 75,
-    font-size: 35,
+    side: 75px,
+    font-size: 35px,
   ),
   $settings-pane: (
     button: (
-      side: 65,
-      font-size: 30,
+      side: 65px,
+      font-size: 30px,
     ),
     bound: (
       input: (
-        font-size: 20,
+        font-size: 20px,
       ),
       label: (
-        font-size: 20,
+        font-size: 20px,
         after: (
-          font-size: 20,
+          font-size: 20px,
         ),
       ),
     ),
@@ -208,25 +207,25 @@ $min-widths: (
 @include screen(
   $name: md,
   $header: (
-    icon-font-size: 45,
+    icon-font-size: 45px,
   ),
   $keyboard: (
-    side: 75,
-    font-size: 35,
+    side: 75px,
+    font-size: 35px,
   ),
   $settings-pane: (
     button: (
-      side: 75,
-      font-size: 30,
+      side: 75px,
+      font-size: 30px,
     ),
     bound: (
       input: (
-        font-size: 20,
+        font-size: 20px,
       ),
       label: (
-        font-size: 25,
+        font-size: 25px,
         after: (
-          font-size: 20,
+          font-size: 20px,
         ),
       ),
     ),
@@ -235,25 +234,25 @@ $min-widths: (
 @include screen(
   $name: lg,
   $header: (
-    icon-font-size: 45,
+    icon-font-size: 45px,
   ),
   $keyboard: (
-    side: 80,
-    font-size: 35,
+    side: 80px,
+    font-size: 35px,
   ),
   $settings-pane: (
     button: (
-      side: 80,
-      font-size: 35,
+      side: 80px,
+      font-size: 35px,
     ),
     bound: (
       input: (
-        font-size: 20,
+        font-size: 20px,
       ),
       label: (
-        font-size: 25,
+        font-size: 25px,
         after: (
-          font-size: 20,
+          font-size: 20px,
         ),
       ),
     ),
@@ -262,25 +261,25 @@ $min-widths: (
 @include screen(
   $name: xl,
   $header: (
-    icon-font-size: 45,
+    icon-font-size: 45px,
   ),
   $keyboard: (
-    side: 80,
-    font-size: 35,
+    side: 80px,
+    font-size: 35px,
   ),
   $settings-pane: (
     button: (
-      side: 80,
-      font-size: 35,
+      side: 80px,
+      font-size: 35px,
     ),
     bound: (
       input: (
-        font-size: 20,
+        font-size: 20px,
       ),
       label: (
-        font-size: 25,
+        font-size: 25px,
         after: (
-          font-size: 20,
+          font-size: 20px,
         ),
       ),
     ),
@@ -289,25 +288,25 @@ $min-widths: (
 @include screen(
   $name: xxl,
   $header: (
-    icon-font-size: 50,
+    icon-font-size: 50px,
   ),
   $keyboard: (
-    side: 80,
-    font-size: 40,
+    side: 80px,
+    font-size: 40px,
   ),
   $settings-pane: (
     button: (
-      side: 80,
-      font-size: 35,
+      side: 80px,
+      font-size: 35px,
     ),
     bound: (
       input: (
-        font-size: 20,
+        font-size: 20px,
       ),
       label: (
-        font-size: 25,
+        font-size: 25px,
         after: (
-          font-size: 20,
+          font-size: 20px,
         ),
       ),
     ),
