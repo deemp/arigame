@@ -55,6 +55,11 @@
     background-color: #0d6efd;
     color: white;
   }
+  .settings-pane button.exercise:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+  }
   .settings-pane .bound input {
     height: 50px;
     font-size: 18px;
@@ -116,6 +121,11 @@
     background-color: white;
   }
   .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+  }
+  .settings-pane button.exercise:active {
     border-color: #0d6efd;
     background-color: #0d6efd;
     color: white;
@@ -185,6 +195,11 @@
     background-color: #0d6efd;
     color: white;
   }
+  .settings-pane button.exercise:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+  }
   .settings-pane .bound input {
     height: 75px;
     font-size: 20px;
@@ -246,6 +261,11 @@
     background-color: white;
   }
   .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+  }
+  .settings-pane button.exercise:active {
     border-color: #0d6efd;
     background-color: #0d6efd;
     color: white;
@@ -315,6 +335,11 @@
     background-color: #0d6efd;
     color: white;
   }
+  .settings-pane button.exercise:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+  }
   .settings-pane .bound input {
     height: 80px;
     font-size: 20px;
@@ -376,6 +401,11 @@
     background-color: white;
   }
   .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
+  }
+  .settings-pane button.exercise:active {
     border-color: #0d6efd;
     background-color: #0d6efd;
     color: white;

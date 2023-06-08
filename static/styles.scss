@@ -9,6 +9,14 @@ $min-widths: (
   xxl: 1400px,
 );
 
+@mixin active($color-light) {
+  &:active {
+    border-color: $color-light;
+    background-color: $color-light;
+    color: white;
+  }
+}
+
 @mixin screen($name, $header, $keyboard, $settings-pane) {
   $min-width: map.get($min-widths, $name);
 
@@ -68,16 +76,9 @@ $min-widths: (
     .settings-pane {
       $button: map.get($settings-pane, button);
       $side: map.get($button, side);
-
+      $color-border-grey: #dee2e6;
       button {
         &.exercise {
-          position: relative;
-
-          // padding: 0.5em 1em;
-          // border-color: #3e7ad48c
-          // border-radius: 0.5em
-          // background-color: white
-          // color: #004ec4
           height: $side;
           width: $side;
 
@@ -85,11 +86,9 @@ $min-widths: (
           // box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
           // cursor: pointer
 
-          // padding: 0.5em 1em;
-          // border-color: #dee2e6;
           border-radius: 0.5em;
           border-width: 2px;
-          border-color: #dee2e6;
+          border-color: $color-border-grey;
 
           color: black;
 
@@ -98,12 +97,9 @@ $min-widths: (
           &:hover {
             border-color: $color-light;
             background-color: white;
-            &:active {
-              border-color: $color-light;
-              background-color: $color-light;
-              color: white;
-            }
+            @include active($color-light: $color-light);
           }
+          @include active($color-light: $color-light);
         }
       }
 
