@@ -8,11 +8,11 @@
     justify-content: center;
   }
   .header i.settings {
-    color: rgba(0, 35, 101, 0.9333333333);
+    color: #0d6efd;
     -webkit-text-stroke: 1px;
   }
   .header i.settings:hover {
-    color: #002365;
+    color: #0b5ed7;
   }
   .header i.correct {
     color: green;
@@ -41,6 +41,20 @@
     height: 50;
     width: 50;
     font-size: 20;
+    border-radius: 0.5em;
+    border-width: 2;
+    border-color: #dee2e6;
+    color: black;
+    cursor: pointer;
+  }
+  .settings-pane button.exercise:hover {
+    border-color: #0d6efd;
+    background-color: white;
+  }
+  .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
   }
   .settings-pane .bound input {
     height: 50;
@@ -60,11 +74,11 @@
     justify-content: center;
   }
   .header i.settings {
-    color: rgba(0, 35, 101, 0.9333333333);
+    color: #0d6efd;
     -webkit-text-stroke: 1px;
   }
   .header i.settings:hover {
-    color: #002365;
+    color: #0b5ed7;
   }
   .header i.correct {
     color: green;
@@ -93,6 +107,20 @@
     height: 65;
     width: 65;
     font-size: 30;
+    border-radius: 0.5em;
+    border-width: 2;
+    border-color: #dee2e6;
+    color: black;
+    cursor: pointer;
+  }
+  .settings-pane button.exercise:hover {
+    border-color: #0d6efd;
+    background-color: white;
+  }
+  .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
   }
   .settings-pane .bound input {
     height: 65;
@@ -112,11 +140,11 @@
     justify-content: center;
   }
   .header i.settings {
-    color: rgba(0, 35, 101, 0.9333333333);
+    color: #0d6efd;
     -webkit-text-stroke: 1px;
   }
   .header i.settings:hover {
-    color: #002365;
+    color: #0b5ed7;
   }
   .header i.correct {
     color: green;
@@ -145,6 +173,20 @@
     height: 75;
     width: 75;
     font-size: 30;
+    border-radius: 0.5em;
+    border-width: 2;
+    border-color: #dee2e6;
+    color: black;
+    cursor: pointer;
+  }
+  .settings-pane button.exercise:hover {
+    border-color: #0d6efd;
+    background-color: white;
+  }
+  .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
   }
   .settings-pane .bound input {
     height: 75;
@@ -164,11 +206,11 @@
     justify-content: center;
   }
   .header i.settings {
-    color: rgba(0, 35, 101, 0.9333333333);
+    color: #0d6efd;
     -webkit-text-stroke: 1px;
   }
   .header i.settings:hover {
-    color: #002365;
+    color: #0b5ed7;
   }
   .header i.correct {
     color: green;
@@ -197,6 +239,20 @@
     height: 80;
     width: 80;
     font-size: 35;
+    border-radius: 0.5em;
+    border-width: 2;
+    border-color: #dee2e6;
+    color: black;
+    cursor: pointer;
+  }
+  .settings-pane button.exercise:hover {
+    border-color: #0d6efd;
+    background-color: white;
+  }
+  .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
   }
   .settings-pane .bound input {
     height: 80;
@@ -216,11 +272,11 @@
     justify-content: center;
   }
   .header i.settings {
-    color: rgba(0, 35, 101, 0.9333333333);
+    color: #0d6efd;
     -webkit-text-stroke: 1px;
   }
   .header i.settings:hover {
-    color: #002365;
+    color: #0b5ed7;
   }
   .header i.correct {
     color: green;
@@ -249,6 +305,20 @@
     height: 80;
     width: 80;
     font-size: 35;
+    border-radius: 0.5em;
+    border-width: 2;
+    border-color: #dee2e6;
+    color: black;
+    cursor: pointer;
+  }
+  .settings-pane button.exercise:hover {
+    border-color: #0d6efd;
+    background-color: white;
+  }
+  .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
   }
   .settings-pane .bound input {
     height: 80;
@@ -268,11 +338,11 @@
     justify-content: center;
   }
   .header i.settings {
-    color: rgba(0, 35, 101, 0.9333333333);
+    color: #0d6efd;
     -webkit-text-stroke: 1px;
   }
   .header i.settings:hover {
-    color: #002365;
+    color: #0b5ed7;
   }
   .header i.correct {
     color: green;
@@ -301,6 +371,20 @@
     height: 80;
     width: 80;
     font-size: 35;
+    border-radius: 0.5em;
+    border-width: 2;
+    border-color: #dee2e6;
+    color: black;
+    cursor: pointer;
+  }
+  .settings-pane button.exercise:hover {
+    border-color: #0d6efd;
+    background-color: white;
+  }
+  .settings-pane button.exercise:hover:active {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+    color: white;
   }
   .settings-pane .bound input {
     height: 80;

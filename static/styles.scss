@@ -14,6 +14,8 @@ $min-widths: (
 
   /* #{$name} */
   @media (min-width: $min-width) {
+    $color-light: #0d6efd;
+    $color-dark: #0b5ed7;
     .header {
       i {
         font-size: map.get($header, icon-font-size);
@@ -23,11 +25,11 @@ $min-widths: (
         justify-content: center;
 
         &.settings {
-          color: #002365ee;
+          color: $color-light;
           -webkit-text-stroke: 1px;
 
           &:hover {
-            color: #002365;
+            color: $color-dark
           }
         }
 
@@ -83,13 +85,25 @@ $min-widths: (
           // box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5)
           // cursor: pointer
 
-          // &:active
-          // background-color: #3e7ad48c
-          // color: white
-          // &:hover {
-          //   border-color: #0b5dd78c;
-          //   box-shadow: 0 0 0 0.2rem #007bff40;
-          // }
+          // padding: 0.5em 1em;
+          // border-color: #dee2e6;
+          border-radius: 0.5em;
+          border-width: 2;
+          border-color: #dee2e6;
+
+          color: black;
+
+          cursor: pointer;
+
+          &:hover {
+            border-color: $color-light;
+            background-color: white;
+            &:active {
+              border-color: $color-light;
+              background-color: $color-light;
+              color: white;
+            }
+          }
         }
       }
 

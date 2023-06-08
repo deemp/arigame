@@ -234,7 +234,7 @@ mkOperandBound operand bound placeholder_ =
           ]
       ]
 
-settingsClasses = [ cExercise, btn, btnSecondary ]
+settingsClasses = [ cExercise, btn ]
 
 mkOperandButton ∷ forall m. Operand → H.ComponentHTML Action () m
 mkOperandButton operand =
@@ -306,7 +306,7 @@ mkSettings state =
         , offcanvasBottom
         , h75
         , cSettingsPane
-        , ClassName "show"
+        -- , ClassName "hide"
         ]
     , tabIndex (-1)
     , id offcanvasBottomId
@@ -338,7 +338,7 @@ mkSettings state =
 
 mkHeader :: forall m. State -> H.ComponentHTML Action () m
 mkHeader state =
-  HH.div [ classes [ dFlex, justifyContentCenter, p2, cHeader ] ]
+  HH.div [ classes [ dFlex, justifyContentCenter, p2, cHeader, pbXxl0 ] ]
     [ HH.div [ classes [ colXxl4, colXl6, colLg8, colMd9, colSm11, col11 ] ]
         [ HH.div [ classes [ dFlex, justifyContentCenter, alignItemsCenter ] ]
             ( [ HH.div [ classes [ col4 ] ]
@@ -377,7 +377,7 @@ mkExercise state = do
 
     render_ :: forall a. HasSymbol a => String -> Lens' ProblemState (Maybe a) -> H.ComponentHTML Action () m
     render_ def l = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe def getSymbol (view l state.problemState)) ]
-  HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
+  HH.div [ classes [ dFlex, justifyContentCenter, pb2 ] ]
     [ HH.div [ classes [ colLg10, colSm12 ] ]
         [ HH.div [ classes [ fwBolder, textCenter, cExercise ] ]
             [ HH.p [ classes [ mt2, mb2 ] ]
