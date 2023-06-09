@@ -1,7 +1,11 @@
 /* xs */
 @media (min-width: 0px) {
+  .header .header-col {
+    min-width: 500px;
+    max-width: 100%;
+  }
   .header i {
-    font-size: 30px;
+    font-size: 35px;
     text-align: center;
     display: flex;
     align-items: center;
@@ -24,17 +28,20 @@
     --bs-btn-border-color: none;
   }
   .header p.counter {
-    font-size: 30px;
+    font-size: 35px;
   }
   .exercise {
-    font-size: 50px;
+    font-size: 60px;
   }
   .keyboard button {
-    width: 55px;
-    height: 55px;
-    font-size: 27px;
+    width: 100px;
+    height: 100px;
+    font-size: 60px;
     max-width: 100%;
     max-height: 100%;
+  }
+  .keyboard .keyboard-col {
+    width: 400px;
   }
   .settings-pane button.exercise {
     height: 50px;
@@ -70,8 +77,12 @@
 }
 /* sm */
 @media (min-width: 576px) {
+  .header .header-col {
+    min-width: 600px;
+    max-width: 100%;
+  }
   .header i {
-    font-size: 40px;
+    font-size: 60px;
     text-align: center;
     display: flex;
     align-items: center;
@@ -94,17 +105,20 @@
     --bs-btn-border-color: none;
   }
   .header p.counter {
-    font-size: 30px;
+    font-size: 60px;
   }
   .exercise {
-    font-size: 50px;
+    font-size: 100px;
   }
   .keyboard button {
-    width: 75px;
-    height: 75px;
-    font-size: 35px;
+    width: 150px;
+    height: 150px;
+    font-size: 70px;
     max-width: 100%;
     max-height: 100%;
+  }
+  .keyboard .keyboard-col {
+    width: 550px;
   }
   .settings-pane button.exercise {
     height: 65px;
@@ -140,8 +154,12 @@
 }
 /* md */
 @media (min-width: 768px) {
+  .header .header-col {
+    min-width: 700px;
+    max-width: 100%;
+  }
   .header i {
-    font-size: 45px;
+    font-size: 60px;
     text-align: center;
     display: flex;
     align-items: center;
@@ -164,17 +182,20 @@
     --bs-btn-border-color: none;
   }
   .header p.counter {
-    font-size: 30px;
+    font-size: 60px;
   }
   .exercise {
-    font-size: 50px;
+    font-size: 100px;
   }
   .keyboard button {
-    width: 75px;
-    height: 75px;
-    font-size: 35px;
+    width: 150px;
+    height: 150px;
+    font-size: 70px;
     max-width: 100%;
     max-height: 100%;
+  }
+  .keyboard .keyboard-col {
+    width: 550px;
   }
   .settings-pane button.exercise {
     height: 75px;
@@ -210,8 +231,12 @@
 }
 /* lg */
 @media (min-width: 992px) {
+  .header .header-col {
+    min-width: 700px;
+    max-width: 100%;
+  }
   .header i {
-    font-size: 45px;
+    font-size: 60px;
     text-align: center;
     display: flex;
     align-items: center;
@@ -234,17 +259,20 @@
     --bs-btn-border-color: none;
   }
   .header p.counter {
-    font-size: 30px;
+    font-size: 60px;
   }
   .exercise {
-    font-size: 50px;
+    font-size: 100px;
   }
   .keyboard button {
-    width: 80px;
-    height: 80px;
-    font-size: 35px;
+    width: 150px;
+    height: 150px;
+    font-size: 70px;
     max-width: 100%;
     max-height: 100%;
+  }
+  .keyboard .keyboard-col {
+    width: 550px;
   }
   .settings-pane button.exercise {
     height: 80px;
@@ -280,8 +308,12 @@
 }
 /* xl */
 @media (min-width: 1200px) {
+  .header .header-col {
+    min-width: 700px;
+    max-width: 100%;
+  }
   .header i {
-    font-size: 45px;
+    font-size: 60px;
     text-align: center;
     display: flex;
     align-items: center;
@@ -304,17 +336,20 @@
     --bs-btn-border-color: none;
   }
   .header p.counter {
-    font-size: 30px;
+    font-size: 60px;
   }
   .exercise {
-    font-size: 50px;
+    font-size: 100px;
   }
   .keyboard button {
-    width: 80px;
-    height: 80px;
-    font-size: 35px;
+    width: 150px;
+    height: 150px;
+    font-size: 70px;
     max-width: 100%;
     max-height: 100%;
+  }
+  .keyboard .keyboard-col {
+    width: 550px;
   }
   .settings-pane button.exercise {
     height: 80px;
@@ -350,8 +385,12 @@
 }
 /* xxl */
 @media (min-width: 1400px) {
+  .header .header-col {
+    min-width: 700px;
+    max-width: 100%;
+  }
   .header i {
-    font-size: 50px;
+    font-size: 60px;
     text-align: center;
     display: flex;
     align-items: center;
@@ -374,17 +413,20 @@
     --bs-btn-border-color: none;
   }
   .header p.counter {
-    font-size: 30px;
+    font-size: 60px;
   }
   .exercise {
-    font-size: 50px;
+    font-size: 100px;
   }
   .keyboard button {
-    width: 80px;
-    height: 80px;
-    font-size: 40px;
+    width: 150px;
+    height: 150px;
+    font-size: 70px;
     max-width: 100%;
     max-height: 100%;
+  }
+  .keyboard .keyboard-col {
+    width: 550px;
   }
   .settings-pane button.exercise {
     height: 80px;

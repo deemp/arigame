@@ -219,7 +219,7 @@ mkOperandBound operand bound placeholder_ =
     operandInputId = getSymbol operand <> "-" <> getSymbol bound
   in
     HH.div [ classes [ colXxl5, colXl5, colLg5, colMd5, colSm5, col, pb0 ] ]
-      [ HH.div [ classes [ formFloating, cBound ] ]
+      [ HH.div [ classes [ formFloating, cBound, ps1, pe1 ] ]
           [ HH.input
               [ type_ InputNumber
               , pattern "^[-]0|[1-9][0-9]*$"
@@ -312,17 +312,21 @@ mkSettings state =
     , id offcanvasBottomId
     , ariaLabelledby offcanvasBottomLabel
     ]
-    [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-        [ HH.div [ classes [ colXxl6, colXl8, colLg8, colMd10, colSm11, col ] ]
-            [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-                [ HH.div [ classes [ offcanvasHeader, col, ms1, me1, pb1 ] ]
+    (let colWidths = [ colXxl6, colXl8, colLg8, colMd10, colSm11, col ] in [ 
+      -- HH.div [ classes [ dFlex, justifyContentCenter ] ]
+        -- [ 
+          -- HH.div [ classes [ colXxl6, colXl8, colLg8, colMd10, colSm11, col ] ]
+          --   [ 
+            
+              HH.div [ classes [ dFlex, justifyContentCenter ] ]
+                [ HH.div [ classes ([ offcanvasHeader, ms1, me1, pb1 ] <> colWidths) ]
                     [ HH.h2 [ classes [ offcanvasTitle ] ] [ HH.text "Настройки" ]
                     , HH.button [ type_ ButtonButton, classes [ btnClose, textReset ], ariaLabel "Close", dataBsDismiss "offcanvas", onClick \_ -> ToggleSettings ] []
                     ]
                 ]
             , HH.div [ classes [ offcanvasBody, pt1 ], id settingsId ]
                 [ HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
-                    [ HH.div [ classes [ col ] ]
+                    [ HH.div [ classes colWidths ]
                         [ mkOperand OpA state
                         , mkOperators
                         , mkOperand OpB state
@@ -331,29 +335,26 @@ mkSettings state =
                         ]
                     ]
                 ]
-
-            ]
-        ]
-    ]
+            -- ]
+        -- ]
+    ])
 
 mkHeader :: forall m. State -> H.ComponentHTML Action () m
 mkHeader state =
   HH.div [ classes [ dFlex, justifyContentCenter, p2, cHeader, pbXxl0 ] ]
-    [ HH.div [ classes [ colXxl4, colXl6, colLg8, colMd9, colSm11, col11 ] ]
+    [ HH.div [ classes [ cHeaderCol ] ]
         [ HH.div [ classes [ dFlex, justifyContentCenter, alignItemsCenter ] ]
-            ( [ HH.div [ classes [ col4 ] ]
-                  [ HH.div [ classes [ dFlex, justifyContentEnd ] ]
-                      [ HH.div [ classes [ row, peXxl4, peXl4, peLg4, peMd2, peSm4, pe5 ] ]
-                          [ HH.button [ classes [ btn, p2, pt1, pb1, cSettings ], dataBsTarget offcanvasBottomId, type_ ButtonButton, dataBsToggle "offcanvas", ariaControls "offcanvasBottom", onClick \_ -> ToggleSettings ]
-                              [ HH.i [ classes [ bi, biGearFill, cSettings ] ] []
-                              ]
+            ( [ HH.div [ classes [ col ] ]
+                  [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
+                      [ HH.button [ classes [ btn, p2, pt1, pb1, cSettings ], dataBsTarget offcanvasBottomId, type_ ButtonButton, dataBsToggle "offcanvas", ariaControls "offcanvasBottom", onClick \_ -> ToggleSettings ]
+                          [ HH.i [ classes [ bi, biGearFill, cSettings ] ] []
                           ]
                       ]
                   ]
               ] <>
                 ( let
                     mkCounter cls icon lcounter justify =
-                      HH.div [ classes [ col4 ] ]
+                      HH.div [ classes [ col ] ]
                         [ HH.div [ classes [ dFlex, justify ] ]
                             [ HH.i [ classes [ bi, icon, p2, pe1, cls ] ] []
                             , HH.p [ classes [ cCounter, p2, ps1, m0 ] ] [ HH.text (show (view lcounter state)) ]
@@ -402,7 +403,7 @@ mkKeyboard =
         ]
   in
     HH.div [ classes [ dFlex, justifyContentCenter, cKeyboard ] ]
-      [ HH.div [ classes [ colXxl3, colXl4, colLg5, colMd5, colSm7, col10 ] ]
+      [ HH.div [ classes [ cKeyboardCol ] ]
           [ HH.div [ classes [ row, rowCols3, justifyContentCenter ] ] $
               ( concat $ [ 0, 1, 2 ] <#> (\i -> [ 1, 2, 3 ] <#> (\j -> mkNumberButton (i * 3 + j)))
               ) <>

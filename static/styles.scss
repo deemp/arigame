@@ -9,6 +9,15 @@ $min-widths: (
   xxl: 1400px,
 );
 
+$max-widths: (
+  xs: 575.98px,
+  sm: 767.98px,
+  md: 991.98px,
+  lg: 1199.98px,
+  xl: 1399.98px,
+  xxl: 1400px,
+);
+
 @mixin active($color-light) {
   &:active {
     border-color: $color-light;
@@ -17,7 +26,7 @@ $min-widths: (
   }
 }
 
-@mixin screen($name, $header, $keyboard, $settings-pane) {
+@mixin screen($name, $header, $exercise, $keyboard, $settings-pane) {
   $min-width: map.get($min-widths, $name);
 
   /* #{$name} */
@@ -25,6 +34,11 @@ $min-widths: (
     $color-light: #0d6efd;
     $color-dark: #0b5ed7;
     .header {
+      .header-col {
+        min-width: map.get($header, header-col-min-width);
+        max-width: 100%;
+      }
+
       i {
         font-size: map.get($header, icon-font-size);
         text-align: center;
@@ -55,12 +69,12 @@ $min-widths: (
       }
 
       p.counter {
-        font-size: 30px;
+        font-size: map.get($header, icon-font-size);
       }
     }
 
     .exercise {
-      font-size: 50px;
+      font-size: map.get($exercise, font-size);
     }
 
     .keyboard {
@@ -70,6 +84,9 @@ $min-widths: (
         font-size: map.get($keyboard, font-size);
         max-width: 100%;
         max-height: 100%;
+      }
+      .keyboard-col {
+        width: map.get($keyboard, col);
       }
     }
 
@@ -102,6 +119,12 @@ $min-widths: (
           @include active($color-light: $color-light);
         }
       }
+
+      // .controls {
+      // overflow-y: scroll;
+      // TODO
+      // max-height: 300px;
+      // }
 
       .bound {
         $bound: map.get($settings-pane, bound);
@@ -149,11 +172,16 @@ $min-widths: (
 @include screen(
   $name: xs,
   $header: (
-    icon-font-size: 30px,
+    icon-font-size: 35px,
+    header-col-min-width: 500px,
+  ),
+  $exercise: (
+    font-size: 60px,
   ),
   $keyboard: (
-    side: 55px,
-    font-size: 27px,
+    side: 100px,
+    font-size: 60px,
+    col: 400px,
   ),
   $settings-pane: (
     button: (
@@ -176,11 +204,16 @@ $min-widths: (
 @include screen(
   $name: sm,
   $header: (
-    icon-font-size: 40px,
+    icon-font-size: 60px,
+    header-col-min-width: 600px,
+  ),
+  $exercise: (
+    font-size: 100px,
   ),
   $keyboard: (
-    side: 75px,
-    font-size: 35px,
+    side: 150px,
+    font-size: 70px,
+    col: 550px,
   ),
   $settings-pane: (
     button: (
@@ -203,11 +236,16 @@ $min-widths: (
 @include screen(
   $name: md,
   $header: (
-    icon-font-size: 45px,
+    icon-font-size: 60px,
+    header-col-min-width: 700px,
+  ),
+  $exercise: (
+    font-size: 100px,
   ),
   $keyboard: (
-    side: 75px,
-    font-size: 35px,
+    side: 150px,
+    font-size: 70px,
+    col: 550px,
   ),
   $settings-pane: (
     button: (
@@ -230,11 +268,16 @@ $min-widths: (
 @include screen(
   $name: lg,
   $header: (
-    icon-font-size: 45px,
+    icon-font-size: 60px,
+    header-col-min-width: 700px,
+  ),
+  $exercise: (
+    font-size: 100px,
   ),
   $keyboard: (
-    side: 80px,
-    font-size: 35px,
+    side: 150px,
+    font-size: 70px,
+    col: 550px,
   ),
   $settings-pane: (
     button: (
@@ -257,11 +300,16 @@ $min-widths: (
 @include screen(
   $name: xl,
   $header: (
-    icon-font-size: 45px,
+    icon-font-size: 60px,
+    header-col-min-width: 700px,
+  ),
+  $exercise: (
+    font-size: 100px,
   ),
   $keyboard: (
-    side: 80px,
-    font-size: 35px,
+    side: 150px,
+    font-size: 70px,
+    col: 550px,
   ),
   $settings-pane: (
     button: (
@@ -284,11 +332,16 @@ $min-widths: (
 @include screen(
   $name: xxl,
   $header: (
-    icon-font-size: 50px,
+    icon-font-size: 60px,
+    header-col-min-width: 700px,
+  ),
+  $exercise: (
+    font-size: 100px,
   ),
   $keyboard: (
-    side: 80px,
-    font-size: 40px,
+    side: 150px,
+    font-size: 70px,
+    col: 550px,
   ),
   $settings-pane: (
     button: (
