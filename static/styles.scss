@@ -94,6 +94,7 @@ $max-widths: (
       $button: map.get($settings-pane, button);
       $side: map.get($button, side);
       $color-border-grey: #dee2e6;
+
       button {
         &.exercise {
           height: $side;
@@ -119,12 +120,6 @@ $max-widths: (
           @include active($color-light: $color-light);
         }
       }
-
-      // .controls {
-      // overflow-y: scroll;
-      // TODO
-      // max-height: 300px;
-      // }
 
       .bound {
         $bound: map.get($settings-pane, bound);

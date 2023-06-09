@@ -218,7 +218,7 @@ mkOperandBound operand bound placeholder_ =
   let
     operandInputId = getSymbol operand <> "-" <> getSymbol bound
   in
-    HH.div [ classes [ colXxl5, colXl5, colLg5, colMd5, colSm5, col, pb0 ] ]
+    HH.div [ classes [ col, pb0 ] ]
       [ HH.div [ classes [ formFloating, cBound, ps1, pe1 ] ]
           [ HH.input
               [ type_ InputNumber
@@ -238,7 +238,7 @@ settingsClasses = [ cExercise, btn ]
 
 mkOperandButton ∷ forall m. Operand → H.ComponentHTML Action () m
 mkOperandButton operand =
-  HH.div [ classes [ colXxl, colXl, colLg, colMd, colSm, col3, p1 ] ]
+  HH.div [ classes [ col2, p1 ] ]
     [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
         [ HH.button [ classes settingsClasses, onClick \_ -> ToggleOperand operand ]
             [ HH.text $ getSymbol operand
@@ -262,9 +262,9 @@ mkOperators =
   HH.div [ classes [ dFlex, justifyContentCenter, pb2 ] ]
     [ HH.div [ classes [ col ] ]
         [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-            ( zip operators [ justifyContentEnd, justifyContentCenter, justifyContentStart ] <#>
-                ( \(x /\ justify) ->
-                    HH.div [ classes [ colSm2, col3 ] ]
+            ( zip (zip operators [ justifyContentEnd, justifyContentCenter, justifyContentStart ]) [ 1, 2, 3 ] <#>
+                ( \((x /\ justify) /\ idx) ->
+                    HH.div [ classes [ (if idx == 2 then col2 else col) ] ]
                       [ HH.div
                           [ classes [ dFlex, justify ] ]
                           [ HH.button [ classes settingsClasses, onClick \_ -> ToggleOperator x ]
@@ -306,38 +306,34 @@ mkSettings state =
         , offcanvasBottom
         , h75
         , cSettingsPane
-        -- , ClassName "hide"
+        , ClassName "show"
         ]
     , tabIndex (-1)
     , id offcanvasBottomId
     , ariaLabelledby offcanvasBottomLabel
     ]
-    (let colWidths = [ colXxl6, colXl8, colLg8, colMd10, colSm11, col ] in [ 
-      -- HH.div [ classes [ dFlex, justifyContentCenter ] ]
-        -- [ 
-          -- HH.div [ classes [ colXxl6, colXl8, colLg8, colMd10, colSm11, col ] ]
-          --   [ 
-            
-              HH.div [ classes [ dFlex, justifyContentCenter ] ]
-                [ HH.div [ classes ([ offcanvasHeader, ms1, me1, pb1 ] <> colWidths) ]
-                    [ HH.h2 [ classes [ offcanvasTitle ] ] [ HH.text "Настройки" ]
-                    , HH.button [ type_ ButtonButton, classes [ btnClose, textReset ], ariaLabel "Close", dataBsDismiss "offcanvas", onClick \_ -> ToggleSettings ] []
+    ( let
+        colWidths = [ colXxl6, colXl8, colLg8, colMd10, colSm11, col, cSettings ]
+      in
+        [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
+            [ HH.div [ classes ([ offcanvasHeader, ms1, me1, pb1 ] <> colWidths) ]
+                [ HH.h2 [ classes [ offcanvasTitle ] ] [ HH.text "Настройки" ]
+                , HH.button [ type_ ButtonButton, classes [ btnClose, textReset ], ariaLabel "Close", dataBsDismiss "offcanvas", onClick \_ -> ToggleSettings ] []
+                ]
+            ]
+        , HH.div [ classes [ offcanvasBody, pt1 ], id settingsId ]
+            [ HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
+                [ HH.div [ classes colWidths ]
+                    [ mkOperand OpA state
+                    , mkOperators
+                    , mkOperand OpB state
+                    , mkOperatorComparison
+                    , mkOperand OpC state
                     ]
                 ]
-            , HH.div [ classes [ offcanvasBody, pt1 ], id settingsId ]
-                [ HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
-                    [ HH.div [ classes colWidths ]
-                        [ mkOperand OpA state
-                        , mkOperators
-                        , mkOperand OpB state
-                        , mkOperatorComparison
-                        , mkOperand OpC state
-                        ]
-                    ]
-                ]
-            -- ]
-        -- ]
-    ])
+            ]
+        ]
+    )
 
 mkHeader :: forall m. State -> H.ComponentHTML Action () m
 mkHeader state =
