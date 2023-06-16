@@ -1,7 +1,7 @@
 { workflows, system, name }:
 let
   inherit (workflows.functions.${system}) writeWorkflow expr mkAccessors genAttrsId;
-  inherit (workflows.configs.${system}) steps os nixCI;
+  inherit (workflows.attrsets.${system}) steps run os nixCI;
   inherit (workflows.functions.${system}) installNix cacheNixDirs;
   job1 = "_1_update_flake_locks";
   job2 = "_2_front";
@@ -36,7 +36,7 @@ let
               (cacheNixDirs { restoreOnly = false; })
               {
                 name = "Clean npm cache";
-                run = ''nix run .#npmCleanCache'';
+                run = run.nixRun "npmCleanCache";
               }
               {
                 name = "Cache dependencies";
@@ -60,7 +60,7 @@ let
               }
               {
                 name = "Build";
-                run = ''nix run .#buildGHPages'';
+                run = run.nixRun "buildGHPages";
               }
               {
                 name = "GitHub Pages action";
@@ -71,6 +71,7 @@ let
                   force_orphan = true;
                 };
               }
+              steps.nixStoreCollectGarbage
             ];
           };
       };
