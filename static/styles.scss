@@ -15,7 +15,7 @@ $max-widths: (
   md: 991.98px,
   lg: 1199.98px,
   xl: 1399.98px,
-  xxl: 1400px,
+  xxl: 20000px,
 );
 
 @mixin active($color-light) {
@@ -34,9 +34,8 @@ $max-widths: (
     $color-light: #0d6efd;
     $color-dark: #0b5ed7;
     .header {
-      .header-col {
-        min-width: map.get($header, header-col-min-width);
-        max-width: 100%;
+      .col {
+        max-width: map.get($header, col);
       }
 
       i {
@@ -94,6 +93,10 @@ $max-widths: (
       $button: map.get($settings-pane, button);
       $side: map.get($button, side);
       $color-border-grey: #dee2e6;
+
+      .settings {
+        width: map.get($settings-pane, col);
+      }
 
       button {
         &.exercise {
@@ -168,7 +171,7 @@ $max-widths: (
   $name: xs,
   $header: (
     icon-font-size: 35px,
-    header-col-min-width: 500px,
+    col: 100%,
   ),
   $exercise: (
     font-size: 60px,
@@ -179,6 +182,7 @@ $max-widths: (
     col: 400px,
   ),
   $settings-pane: (
+    col: 800px,
     button: (
       side: 50px,
       font-size: 20px,
@@ -200,7 +204,7 @@ $max-widths: (
   $name: sm,
   $header: (
     icon-font-size: 60px,
-    header-col-min-width: 600px,
+    col: 1100px,
   ),
   $exercise: (
     font-size: 100px,
@@ -211,6 +215,7 @@ $max-widths: (
     col: 550px,
   ),
   $settings-pane: (
+    col: 800px,
     button: (
       side: 65px,
       font-size: 30px,
@@ -232,7 +237,7 @@ $max-widths: (
   $name: md,
   $header: (
     icon-font-size: 60px,
-    header-col-min-width: 700px,
+    col: 1100px,
   ),
   $exercise: (
     font-size: 100px,
@@ -243,6 +248,7 @@ $max-widths: (
     col: 550px,
   ),
   $settings-pane: (
+    col: 800px,
     button: (
       side: 75px,
       font-size: 30px,
@@ -264,7 +270,7 @@ $max-widths: (
   $name: lg,
   $header: (
     icon-font-size: 60px,
-    header-col-min-width: 700px,
+    col: 100%,
   ),
   $exercise: (
     font-size: 100px,
@@ -275,6 +281,7 @@ $max-widths: (
     col: 550px,
   ),
   $settings-pane: (
+    col: 800px,
     button: (
       side: 80px,
       font-size: 35px,
@@ -296,7 +303,7 @@ $max-widths: (
   $name: xl,
   $header: (
     icon-font-size: 60px,
-    header-col-min-width: 700px,
+    col: 1100px,
   ),
   $exercise: (
     font-size: 100px,
@@ -307,6 +314,7 @@ $max-widths: (
     col: 550px,
   ),
   $settings-pane: (
+    col: 800px,
     button: (
       side: 80px,
       font-size: 35px,
@@ -328,7 +336,7 @@ $max-widths: (
   $name: xxl,
   $header: (
     icon-font-size: 60px,
-    header-col-min-width: 700px,
+    col: 1100px,
   ),
   $exercise: (
     font-size: 100px,
@@ -339,6 +347,7 @@ $max-widths: (
     col: 550px,
   ),
   $settings-pane: (
+    col: 800px,
     button: (
       side: 80px,
       font-size: 35px,
