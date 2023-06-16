@@ -18,3 +18,4 @@ dist
 bin
 .vscode
 dev/styles.css.map
+dev/*.css
