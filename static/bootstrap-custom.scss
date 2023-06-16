@@ -1,0 +1,20 @@
+@import "../node_modules/bootstrap/scss/bootstrap";
+
+$heightK: "height";
+
+$utilities: map-merge(
+  $utilities,
+  (
+    $heightK: map-merge(
+      map-get($utilities, $heightK),
+      (
+        values: map-merge(
+          map-get(map-get($utilities, $heightK), "values"),
+          (75: 70%),
+        ),
+      ),
+    ),
+  )
+);
+
+@import "../node_modules/bootstrap/scss/bootstrap";
