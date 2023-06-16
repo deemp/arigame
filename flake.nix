@@ -24,7 +24,7 @@
         shellTools = inputs.purescript-tools.shellTools.${system};
         inherit (inputs.devshell.functions.${system}) mkShell mkCommands mkRunCommands;
         inherit (inputs.drv-tools.functions.${system}) mkShellApps mkBin;
-        inherit (inputs.codium.configs.${system}) extensions settingsNix settingsNixCommon;
+        inherit (inputs.codium.configs.${system}) extensions extensionsCommon settingsNix settingsCommonNix;
         inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
         inherit (inputs.haskell-tools.functions.${system}) toolsGHC;
         inherit (inputs.flakes-tools.functions.${system}) mkFlakesTools;
@@ -58,10 +58,10 @@
 
         packages = {
           codium = mkCodium {
-            extensions = { inherit (extensions) nix misc github markdown purescript; };
+            extensions = extensionsCommon // { inherit (extensions) purescript; };
             runtimeDependencies = tools;
           };
-          writeSettings = writeSettingsJSON (settingsNixCommon // { inherit (settingsNix) vscode-dhall-lsp-server ide-purescript; });
+          writeSettings = writeSettingsJSON (settingsCommonNix // { inherit (settingsNix) vscode-dhall-lsp-server ide-purescript; });
           writeWorkflows = import ./nix-files/workflow.nix {
             name = "ci";
             inherit workflows system;
