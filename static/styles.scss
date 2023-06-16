@@ -177,12 +177,12 @@ $max-widths: (
     font-size: 60px,
   ),
   $keyboard: (
-    side: 100px,
-    font-size: 60px,
-    col: 400px,
+    side: 80px,
+    font-size: 45px,
+    col: 270px,
   ),
   $settings-pane: (
-    col: 800px,
+    col: 100%,
     button: (
       side: 50px,
       font-size: 20px,
@@ -204,7 +204,7 @@ $max-widths: (
   $name: sm,
   $header: (
     icon-font-size: 60px,
-    col: 1100px,
+    col: 100%,
   ),
   $exercise: (
     font-size: 100px,
