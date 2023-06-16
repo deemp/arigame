@@ -234,6 +234,7 @@ mkOperandBound operand bound placeholder_ =
           ]
       ]
 
+settingsClasses ∷ Array ClassName
 settingsClasses = [ cExercise, btn ]
 
 mkOperandButton ∷ forall m. Operand → H.ComponentHTML Action () m
@@ -306,14 +307,14 @@ mkSettings state =
         , offcanvasBottom
         , h75
         , cSettingsPane
-        , ClassName "show"
+        -- , ClassName "show"
         ]
     , tabIndex (-1)
     , id offcanvasBottomId
     , ariaLabelledby offcanvasBottomLabel
     ]
     ( let
-        colWidths = [ colXxl6, colXl8, colLg8, colMd10, colSm11, col, cSettings ]
+        colWidths = [ cSettings ]
       in
         [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
             [ HH.div [ classes ([ offcanvasHeader, ms1, me1, pb1 ] <> colWidths) ]
@@ -337,12 +338,19 @@ mkSettings state =
 
 mkHeader :: forall m. State -> H.ComponentHTML Action () m
 mkHeader state =
-  HH.div [ classes [ dFlex, justifyContentCenter, p2, cHeader, pbXxl0 ] ]
-    [ HH.div [ classes [ cHeaderCol ] ]
+  HH.div [ classes [ dFlex, justifyContentCenter, p2, cHeader ] ]
+    [ HH.div [ classes [ col ] ]
         [ HH.div [ classes [ dFlex, justifyContentCenter, alignItemsCenter ] ]
             ( [ HH.div [ classes [ col ] ]
-                  [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-                      [ HH.button [ classes [ btn, p2, pt1, pb1, cSettings ], dataBsTarget offcanvasBottomId, type_ ButtonButton, dataBsToggle "offcanvas", ariaControls "offcanvasBottom", onClick \_ -> ToggleSettings ]
+                  [ HH.div [ classes [ dFlex, justifyContentEnd ] ]
+                      [ HH.button
+                          [ classes [ btn, p2, pt1, pb1, cSettings ]
+                          , dataBsTarget offcanvasBottomId
+                          , type_ ButtonButton
+                          , dataBsToggle "offcanvas"
+                          , ariaControls "offcanvasBottom"
+                          , onClick \_ -> ToggleSettings
+                          ]
                           [ HH.i [ classes [ bi, biGearFill, cSettings ] ] []
                           ]
                       ]
@@ -350,7 +358,7 @@ mkHeader state =
               ] <>
                 ( let
                     mkCounter cls icon lcounter justify =
-                      HH.div [ classes [ col ] ]
+                      HH.div [ classes [ col, cls ] ]
                         [ HH.div [ classes [ dFlex, justify ] ]
                             [ HH.i [ classes [ bi, icon, p2, pe1, cls ] ] []
                             , HH.p [ classes [ cCounter, p2, ps1, m0 ] ] [ HH.text (show (view lcounter state)) ]
@@ -374,10 +382,10 @@ mkExercise state = do
 
     render_ :: forall a. HasSymbol a => String -> Lens' ProblemState (Maybe a) -> H.ComponentHTML Action () m
     render_ def l = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe def getSymbol (view l state.problemState)) ]
-  HH.div [ classes [ dFlex, justifyContentCenter, pb2 ] ]
-    [ HH.div [ classes [ colLg10, colSm12 ] ]
+  HH.div [ classes [ dFlex, justifyContentCenter ] ]
+    [ HH.div [ classes [ col, cExercise ] ]
         [ HH.div [ classes [ fwBolder, textCenter, cExercise ] ]
-            [ HH.p [ classes [ mt2, mb2 ] ]
+            [ HH.p_
                 [ renderOperand OpA
                 , render_ "+" (p @"operatorCurrent")
                 , renderOperand OpB
