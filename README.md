@@ -4,6 +4,8 @@ An arithmetics game written for my sisters.
 
 ## Play [here](https://deemp.github.io/arigame/)
 
+<div align="center"><img src="./README/mainScreen.png" width="50%"/></div>
+
 ## Development
 
 1. Get development tools.
