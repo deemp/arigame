@@ -119,7 +119,7 @@ $max-widths: (
             background-color: white;
             @include active($color-light: $color-light);
           }
-          @include active($color-light: $color-light);
+          // @include active($color-light: $color-light);
           &.selected {
             border-color: $color-light;
             background-color: $color-light;
