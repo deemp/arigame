@@ -5,6 +5,7 @@
     "esbuild": "^0.14.43",
     "gh-pages": "3.2.3",
     "http-server": "^14.1.1",
+    "localtunnel": "^2.0.2",
     "npx": "^10.2.2",
     "parcel": "2.5.0",
     "sass": "^1.62.1",
