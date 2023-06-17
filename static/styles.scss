@@ -113,13 +113,16 @@ $max-widths: (
           color: black;
 
           cursor: pointer;
-
-          &:hover {
-            border-color: $color-light;
-            background-color: white;
-            @include active($color-light: $color-light);
+          
+          @include active($color-light: $color-light);
+          
+          @media (hover: hover) {
+            &:hover {
+              border-color: $color-light;
+              background-color: white;
+              @include active($color-light: $color-light);
+            }
           }
-          // @include active($color-light: $color-light);
           &.selected {
             border-color: $color-light;
             background-color: $color-light;
