@@ -34,7 +34,7 @@ $max-widths: (
     $color-light: #0d6efd;
     $color-dark: #0b5ed7;
     .header {
-      .col {
+      > .col {
         max-width: map.get($header, col);
       }
 
