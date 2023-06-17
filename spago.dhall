@@ -24,7 +24,7 @@ to generate this file without the comments in this block.
   , "maybe"
   , "strings"
   , "typelevel-prelude"
-  , "purescript-halogen-css-frameworks"
+  , "purescript-css-frameworks"
   , "dom-indexed"
   , "tuples"
   ]

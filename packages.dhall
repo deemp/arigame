@@ -103,8 +103,8 @@ let upstream =
         sha256:92e164eb6e7c0f2d76eb1cc36fdbf9375916d6909f9e9c0e697f1654a99941f2
 
 in  upstream
-  with purescript-halogen-css-frameworks =
-    { dependencies = [ "halogen" ]
-    , repo = "https://github.com/deemp/purescript-halogen-css-frameworks"
-    , version = "v1.0.0"
+  with purescript-css-frameworks =
+    { dependencies = [ "web-html" ]
+    , repo = "https://github.com/deemp/purescript-css-frameworks"
+    , version = "v1.0.1"
     }

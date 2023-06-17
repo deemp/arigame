@@ -1,7 +1,7 @@
 module Main where
 
-import Halogen.Frameworks.Bootstrap hiding (show, bi)
-import Halogen.Frameworks.BootstrapIcons
+import CSSFrameworks.Bootstrap hiding (show, bi)
+import CSSFrameworks.BootstrapIcons
 import Prelude
 
 import Classes
