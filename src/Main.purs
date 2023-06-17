@@ -11,7 +11,7 @@ import Data.Lens (Lens', _Just, over, view, (%~), (<>~))
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Set (Set)
+import Data.Set (Set, member)
 import Data.Set as Set
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -64,9 +64,12 @@ instance HasSymbol Operator where
     Minus -> "–"
     Multiply -> "×"
 
-data ComparisonOperator = Equal
+data OperatorComparison = Equal
 
-instance HasSymbol ComparisonOperator where
+derive instance Eq OperatorComparison
+derive instance Ord OperatorComparison
+
+instance HasSymbol OperatorComparison where
   getSymbol = case _ of
     Equal -> "="
 
@@ -97,7 +100,7 @@ type ProblemState =
   , answerCurrent :: Maybe AnswerCurrent
   , answerCorrect :: Maybe Int
   , operatorCurrent :: Maybe Operator
-  , operatorComparisonCurrent :: Maybe ComparisonOperator
+  , operatorComparisonCurrent :: Maybe OperatorComparison
   }
 
 type Placeholder =
@@ -109,8 +112,10 @@ type State =
   { counterAnswersCorrect :: Int
   , counterAnswersIncorrect :: Int
   , isSettingsOpen :: Boolean
+  -- avoid capturing digit input when settings is open
   , operandsSelected :: Set Operand
   , operatorsSelected :: Set Operator
+  , operatorsComparisonSelected :: Set OperatorComparison
   , isKeyboardDisabled :: Boolean
   , problemState :: ProblemState
   }
@@ -122,6 +127,7 @@ initialState =
   , isSettingsOpen: false
   , operandsSelected: Set.empty
   , operatorsSelected: Set.empty
+  , operatorsComparisonSelected: Set.empty
   , isKeyboardDisabled: false
   , problemState:
       { operandValue: Map.empty
@@ -149,8 +155,9 @@ handleAction = case _ of
       (p @"problemState" <<< p @"answerCurrent")
       (_ >>= (\z -> if z.number == "" then Nothing else Just z { number = (fromCharArray (dropEnd 1 (toCharArray z.number))) }))
   ToggleOperator op -> H.modify_ (over (p @"operatorsSelected") %~ Set.toggle op)
-  ToggleSettings -> H.modify_ (over (p @"isSettingsOpen") %~ not)
+  ToggleOperatorComparison op -> H.modify_ (over (p @"operatorsComparisonSelected") %~ Set.toggle op)
   ToggleOperand op -> H.modify_ (over (p @"operandsSelected") %~ Set.toggle op)
+  ToggleSettings -> H.modify_ (over (p @"isSettingsOpen") %~ not)
   BoundChanged op bound inp ->
     -- TODO
     H.modify_ identity
@@ -173,6 +180,7 @@ data Action
   | MinusButtonClicked
   | DeleteButtonClicked
   | ToggleOperator Operator
+  | ToggleOperatorComparison OperatorComparison
   | ToggleOperand Operand
   | ToggleSettings
   | BoundChanged Operand Bound String
@@ -234,32 +242,32 @@ mkOperandBound operand bound placeholder_ =
           ]
       ]
 
-settingsClasses ∷ Array ClassName
-settingsClasses = [ cExercise, btn ]
+settingsClasses ∷ Boolean -> Array ClassName
+settingsClasses selected = [ cSelect, btn ] <> (if selected then [ cSelected ] else [])
 
-mkOperandButton ∷ forall m. Operand → H.ComponentHTML Action () m
-mkOperandButton operand =
+mkOperandButton ∷ forall m. State -> Operand → H.ComponentHTML Action () m
+mkOperandButton state operand =
   HH.div [ classes [ col2, p1 ] ]
     [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-        [ HH.button [ classes settingsClasses, onClick \_ -> ToggleOperand operand ]
+        [ HH.button [ classes (settingsClasses (member operand state.operandsSelected)), onClick \_ -> ToggleOperand operand ]
             [ HH.text $ getSymbol operand
             ]
         ]
     ]
 
-mkOperand ∷ Operand → State → forall m. H.ComponentHTML Action () m
-mkOperand operand state =
+mkOperand ∷ State → Operand → forall m. H.ComponentHTML Action () m
+mkOperand state operand =
   HH.div [ classes [ dFlex, pb2, alignItemsCenter ] ] $
     let
       mkBound bound = mkOperandBound operand bound (fromMaybe 0 (Map.lookup (operand /\ bound) state.problemState.operandBoundValuePlaceholder))
     in
       [ mkBound BoundMin
-      , mkOperandButton operand
+      , mkOperandButton state operand
       , mkBound BoundMax
       ]
 
-mkOperators :: forall m. H.ComponentHTML Action () m
-mkOperators =
+mkOperators :: forall m. State -> H.ComponentHTML Action () m
+mkOperators state =
   HH.div [ classes [ dFlex, justifyContentCenter, pb2 ] ]
     [ HH.div [ classes [ col ] ]
         [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
@@ -268,7 +276,7 @@ mkOperators =
                     HH.div [ classes [ (if idx == 2 then col2 else col) ] ]
                       [ HH.div
                           [ classes [ dFlex, justify ] ]
-                          [ HH.button [ classes settingsClasses, onClick \_ -> ToggleOperator x ]
+                          [ HH.button [ classes (settingsClasses (member x state.operatorsSelected)), onClick \_ -> ToggleOperator x ]
                               [ HH.text $ getSymbol x
                               ]
                           ]
@@ -278,17 +286,22 @@ mkOperators =
         ]
     ]
 
-mkOperatorComparison :: forall m. H.ComponentHTML Action () m
-mkOperatorComparison =
-  HH.div [ classes [ dFlex, justifyContentCenter ] ]
-    [ HH.div [ classes [ row, justifyContentCenter ] ]
-        [ HH.div [ classes [ btnGroup, pb2 ] ]
-            [ HH.button ([ classes settingsClasses ])
-                [ HH.text $ getSymbol Equal
-                ]
-            ]
-        ]
-    ]
+mkOperatorComparison :: forall m. State -> H.ComponentHTML Action () m
+mkOperatorComparison state =
+  let
+    operator = Equal
+  in
+    HH.div [ classes [ dFlex, justifyContentCenter ] ]
+      [ HH.div [ classes [ row, justifyContentCenter ] ]
+          [ HH.div [ classes [ btnGroup, pb2 ] ]
+              [ HH.button ([ 
+                  classes (settingsClasses (member operator state.operatorsComparisonSelected)), 
+                  onClick \_ -> ToggleOperatorComparison operator ])
+                  [ HH.text $ getSymbol operator
+                  ]
+              ]
+          ]
+      ]
 
 offcanvasBottomId :: String
 offcanvasBottomId = "offcanvas-bottom"
@@ -302,12 +315,11 @@ offcanvasBottomLabel = "offcanvasBottomLabel"
 mkSettings :: forall m. State -> H.ComponentHTML Action () m
 mkSettings state =
   HH.div
-    [ classes
+    [ classes $
         [ offcanvas
         , offcanvasBottom
         , h75
         , cSettingsPane
-        -- , ClassName "show"
         ]
     , tabIndex (-1)
     , id offcanvasBottomId
@@ -319,17 +331,24 @@ mkSettings state =
         [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
             [ HH.div [ classes ([ offcanvasHeader, ms1, me1, pb1 ] <> colWidths) ]
                 [ HH.h2 [ classes [ offcanvasTitle ] ] [ HH.text "Настройки" ]
-                , HH.button [ type_ ButtonButton, classes [ btnClose, textReset ], ariaLabel "Close", dataBsDismiss "offcanvas", onClick \_ -> ToggleSettings ] []
+                , HH.button
+                    [ type_ ButtonButton
+                    , classes [ btnClose, textReset ]
+                    , ariaLabel "Close"
+                    , dataBsDismiss "offcanvas"
+                    , onClick \_ -> ToggleSettings
+                    ]
+                    []
                 ]
             ]
         , HH.div [ classes [ offcanvasBody, pt1 ], id settingsId ]
             [ HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
                 [ HH.div [ classes colWidths ]
-                    [ mkOperand OpA state
-                    , mkOperators
-                    , mkOperand OpB state
-                    , mkOperatorComparison
-                    , mkOperand OpC state
+                    [ mkOperand state OpA
+                    , mkOperators state
+                    , mkOperand state OpB
+                    , mkOperatorComparison state
+                    , mkOperand state OpC
                     ]
                 ]
             ]

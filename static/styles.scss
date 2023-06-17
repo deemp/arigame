@@ -99,7 +99,7 @@ $max-widths: (
       }
 
       button {
-        &.exercise {
+        &.select {
           height: $side;
           width: $side;
 
@@ -110,7 +110,6 @@ $max-widths: (
           border-radius: 0.5em;
           border-width: 2px;
           border-color: $color-border-grey;
-
           color: black;
 
           cursor: pointer;
@@ -121,6 +120,11 @@ $max-widths: (
             @include active($color-light: $color-light);
           }
           @include active($color-light: $color-light);
+          &.selected {
+            border-color: $color-light;
+            background-color: $color-light;
+            color: white;
+          }
         }
       }
 
@@ -150,7 +154,7 @@ $max-widths: (
       //   ~ label {
       //     color: 0 0 0 0.2rem #007bff40;
       //     transform: scale(0.7) translateY(-0.5rem) translateX(0.15rem);
-          
+
       //     &::after {
       //       // position: absolute;
       //       // inset: $form-floating-padding-y ($form-floating-padding-x * .5);
