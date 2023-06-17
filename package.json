@@ -2,6 +2,7 @@
   "name": "mini-games-halogen",
   "private": true,
   "devDependencies": {
+    "bootstrap": "^5.3.0",
     "esbuild": "^0.14.43",
     "gh-pages": "3.2.3",
     "http-server": "^14.1.1",
@@ -24,8 +25,5 @@
     "build:gh-pages": "npm i && npm run build:min && cp -TR min docs",
     "build:prod": "npm run build:min && cp -TR min prod",
     "postbuild:prod": "npx http-server prod -o"
-  },
-  "dependencies": {
-    "bootstrap": "^5.3.0"
   }
 }
