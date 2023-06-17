@@ -2,7 +2,7 @@
 
 An arithmetics game written for my sisters.
 
-Try [here](https://deemp.github.io/calculator-game/)
+## Play [here](https://deemp.github.io/arigame/)
 
 ## Development
 
