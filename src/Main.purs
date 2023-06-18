@@ -2,27 +2,31 @@ module Main where
 
 import Prelude
 
-import CSSFrameworks.Bootstrap (alignItemsCenter, btn, btnClose, btnDanger, btnGroup, btnSecondary, col, col2, dFlex, formControl, formFloating, fwBolder, h75, isInvalid, justifyContentCenter, justifyContentEnd, justifyContentStart, m0, m1, me1, ms1, offcanvas, offcanvasBody, offcanvasBottom, offcanvasHeader, offcanvasTitle, p0, p1, p2, pb0, pb1, pb2, pe1, pe2, ps1, ps2, pt1, pt2, row, rowCols3, textCenter, textReset)
+import CSSFrameworks.Bootstrap (alignItemsCenter, btn, btnClose, btnGroup, btnSecondary, col, col2, dFlex, formControl, formFloating, fwBolder, h75, isInvalid, justifyContentCenter, justifyContentEnd, justifyContentStart, m0, m1, me1, ms1, offcanvas, offcanvasBody, offcanvasBottom, offcanvasHeader, offcanvasTitle, p0, p1, p2, pb0, pb1, pb2, pe1, pe2, ps1, ps2, pt1, pt2, row, rowCols3, textCenter, textReset)
 import CSSFrameworks.BootstrapIcons (bi, biBackspaceFill, biCheckCircleFill, biGearFill, biXCircleFill)
+import CSSFrameworks.Bulma (isInverted)
 import Classes (cBound, cButtonSquare, cCorrect, cCounter, cError, cExercise, cHeader, cIncorrect, cKeyboard, cKeyboardCol, cSelect, cSelected, cSettings, cSettingsPane)
+import Control.Alternative (guard)
 import DOM.HTML.Indexed.ButtonType (ButtonType(..))
-import Data.Array (concat, filter, head, intercalate, zip)
+import Data.Array (concat, elem, filter, head, intercalate, zip)
 import Data.Either (either)
 import Data.Int (fromString)
-import Data.Lens (Lens', over, view, (%~), (.~))
+import Data.Lens (Lens', _Just, element, non, over, traversed, view, (%~), (.~), (^.), (^?))
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Maybe (Maybe(..), fromMaybe, isNothing, maybe)
-import Data.Set (Set, member, size)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Set (Set, member, size, toUnfoldable)
 import Data.Set as Set
 import Data.String (length, take)
 import Data.String.Regex (regex, replace)
 import Data.String.Regex.Flags (global)
+import Data.Traversable (maximum, minimum)
+import Data.Tuple (Tuple)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
 import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Console (log)
 import Effect.Exception (throw)
+import Effect.Random (randomInt)
 import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
@@ -58,7 +62,7 @@ data Operand = OpA | OpB | OpC
 derive instance Eq Operand
 derive instance Ord Operand
 
-data Operator = OpPlus | OpMinus | OpMultiply
+data Operator = OpPlus | OpMinus | OpMultiply | OpDivide
 
 derive instance Eq Operator
 derive instance Ord Operator
@@ -68,6 +72,7 @@ instance HasSymbol Operator where
     OpPlus -> "+"
     OpMinus -> "–"
     OpMultiply -> "×"
+    OpDivide -> "÷"
 
 data OperatorComparison = OpEqual
 
@@ -94,11 +99,20 @@ operatorsList = [ OpPlus, OpMinus, OpMultiply ]
 
 type ExerciseState =
   { operandValue :: Map Operand Int
+  , answerCorrect :: Int
+  , operatorCurrent :: Operator
+  , operatorComparisonCurrent :: OperatorComparison
   , answerCurrent :: String
   -- empty string means unknown answer
-  , answerCorrect :: Maybe Int
-  , operatorCurrent :: Maybe Operator
-  , operatorComparisonCurrent :: Maybe OperatorComparison
+  }
+
+defaultExerciseState :: ExerciseState
+defaultExerciseState =
+  { operandValue: Map.empty
+  , answerCorrect: 42
+  , operatorCurrent: OpPlus
+  , operatorComparisonCurrent: OpEqual
+  , answerCurrent: ""
   }
 
 type SettingsState =
@@ -128,8 +142,8 @@ type HeaderState =
 
 type State =
   { headerState :: HeaderState
-  , exerciseState :: ExerciseState
   , settingsState :: SettingsState
+  , exerciseState :: Maybe ExerciseState
   }
 
 initialState :: State
@@ -138,13 +152,7 @@ initialState =
       { counterAnswersCorrect: 0
       , counterAnswersIncorrect: 0
       }
-  , exerciseState:
-      { operandValue: Map.empty
-      , answerCurrent: ""
-      , answerCorrect: Nothing
-      , operatorCurrent: Nothing
-      , operatorComparisonCurrent: Nothing
-      }
+  , exerciseState: Nothing
   , settingsState:
       { isOpen: false
       , operandsSelected: Set.empty
@@ -190,9 +198,11 @@ handleAction =
     ToggleOperator op -> do
       toggleSelected (p @"operatorsSelected") op
       toggleNoSelectedError (p @"operatorsSelected") NoOperatorSelected
+      updateTargetOperandBounds_
     ToggleOperatorComparison op -> do
-      toggleSelected (p @"operatorsComparisonSelected") op
+      H.modify_ (over (p @"settingsState" <<< p @"operatorsComparisonSelected") %~ Set.insert op)
       toggleNoSelectedError (p @"operatorsComparisonSelected") NoOperatorComparisonSelected
+      updateTargetOperandBounds_
     ToggleOperand op -> do
       toggleSelected (p @"operandsSelected") op
 
@@ -207,12 +217,12 @@ handleAction =
       H.modify_ (over (p @"settingsState" <<< p @"targetOperand") .~ operand)
 
       toggleNoSelectedError (p @"operandsSelected") NoOperandSelected
-    ToggleSettings -> H.modify_ (over (p @"settingsState" <<< p @"isOpen") %~ not)
+      updateTargetOperandBounds_
+    ToggleSettings -> do
+      H.modify_ (over (p @"settingsState" <<< p @"isOpen") %~ not)
     BoundChanged op bound inp -> do
       let inp_ = fixNumber inp
       H.modify_ (over (p @"settingsState" <<< p @"operandBoundValue") %~ Map.insert (op /\ bound) (fixNumber inp))
-
-      liftEffect $ log inp_
 
       -- ugly hack to re-render
       when (fixNumber inp /= inp)
@@ -220,6 +230,9 @@ handleAction =
             handleAction $ BoundChanged op bound (inp_ <> "9")
             handleAction $ BoundChanged op bound inp_
         )
+
+      updateTargetOperandBounds_
+      H.gets _.settingsState >>= genExercise >>= \x -> H.modify_ (\y -> y { exerciseState = x })
     Init -> do
       handleAction $ ToggleOperand OpA
       handleAction $ ToggleOperand OpB
@@ -230,7 +243,7 @@ handleAction =
       handleAction $ BoundChanged OpA BoundMax "20"
       handleAction $ BoundChanged OpB BoundMin "0"
       handleAction $ BoundChanged OpB BoundMax "10"
-
+      updateTargetOperandBounds_
   where
   toggleNoSelectedError :: forall output' m' a. MonadEffect m' => Lens' SettingsState (Set a) -> SettingsButtonError -> H.HalogenM State Action () output' m' Unit
   toggleNoSelectedError l err = do
@@ -246,7 +259,148 @@ handleAction =
   toggleSelected l op = H.modify_ (over (p @"settingsState" <<< l) %~ Set.toggle op)
 
   modifyAnswerCurrent :: (String -> String) -> H.HalogenM State Action () output m Unit
-  modifyAnswerCurrent f = H.modify_ $ over (p @"exerciseState" <<< p @"answerCurrent") %~ f
+  modifyAnswerCurrent f = H.modify_ $ over (p @"exerciseState" <<< _Just <<< p @"answerCurrent") %~ f
+
+  updateTargetOperandBounds_ :: H.HalogenM State Action () output m Unit
+  updateTargetOperandBounds_ = H.modify_ (over (p @"settingsState") %~ updateTargetOperandBounds)
+
+updateTargetOperandBounds :: SettingsState -> SettingsState
+updateTargetOperandBounds state = do
+  case state.targetOperand of
+    Nothing -> state
+    Just op ->
+      let
+        modifyBounds operators =
+          let
+            modifyVal mod_ = state # (over (p @"operandBoundValue") %~ mod_)
+          in
+            case getOtherOperandsBounds state op of
+              Nothing -> modifyVal (Map.delete (op /\ BoundMin) <<< Map.delete (op /\ BoundMax))
+              Just bounds -> do
+                let (mini /\ maxi) = calculateBounds (toUnfoldable operators) bounds
+                modifyVal (Map.insert (op /\ BoundMin) (show mini) <<< Map.insert (op /\ BoundMax) (show maxi))
+      in
+        modifyBounds (flipOperators state op)
+
+flipOperators :: SettingsState -> Operand -> Set FlippedOperator
+flipOperators state operand = Set.map (flipOperator operand) state.operatorsSelected
+
+flipOperator :: Operand -> (Operator -> FlippedOperator)
+flipOperator = case _ of
+  OpA -> \operator -> invertOperator operator false
+  OpB -> \operator -> { operator, isFlipped: (operator `elem` [ OpMinus, OpDivide ]) }
+  OpC -> \operator -> { operator, isFlipped: false }
+
+getOtherOperandsBounds :: SettingsState -> Operand -> Maybe OtherOperandsBounds
+getOtherOperandsBounds state operand = do
+  let
+    (op1 /\ op2) = getOtherOperands operand
+    getOp op bound = fromString =<< Map.lookup (op /\ bound) state.operandBoundValue
+    getOpBounds op = (/\) <$> getOp op BoundMin <*> getOp op BoundMax
+  (op1Min /\ op1Max) <- getOpBounds op1
+  (op2Min /\ op2Max) <- getOpBounds op2
+  guard (not $ Set.isEmpty state.operatorsSelected)
+  guard (not $ Set.isEmpty state.operatorsComparisonSelected)
+  pure { op1Min, op1Max, op2Min, op2Max }
+
+type FlippedOperator =
+  { operator :: Operator
+  , isFlipped :: Boolean
+  }
+
+-- | Find 'min(x)' and 'max(x)' for equations of the form:
+-- 
+-- 'x' = 'op1' `operator` 'op2'
+calculateBounds :: Array FlippedOperator -> OtherOperandsBounds -> (Tuple Int Int)
+calculateBounds operators { op1Min, op1Max, op2Min, op2Max } = (mini /\ maxi)
+  where
+  res = concat do
+    { operator, isFlipped } <- operators
+    (op1 /\ op2) <- do
+      op1 <- [ op1Min, op1Max ]
+      op2 <- [ op2Min, op2Max ]
+      pure (op1 /\ op2)
+    let
+      f op = [ ((if isFlipped then flip else identity) op) op1 op2 ]
+      val =
+        case operator of
+          OpPlus -> f (+)
+          OpMinus -> f (-)
+          OpMultiply -> f (*)
+          -- a bit hard to estimate so use this approximation
+          OpDivide -> [ min op1 op2, max op1 op2, op1 * op2 ]
+    pure val
+  mini = fromMaybe 0 (minimum res)
+  maxi = fromMaybe 0 (maximum res)
+
+invertOperator :: Operator -> Boolean -> FlippedOperator
+invertOperator op isFlipped = { operator, isFlipped }
+  where
+  operator =
+    case op of
+      OpPlus -> OpMinus
+      OpMinus -> OpPlus
+      OpMultiply -> OpDivide
+      OpDivide -> OpMultiply
+
+getOtherOperands :: Operand -> Tuple Operand Operand
+getOtherOperands =
+  case _ of
+    OpA -> (OpB /\ OpC)
+    OpB -> (OpA /\ OpC)
+    OpC -> (OpA /\ OpB)
+
+type OtherOperandsBounds = { op1Min :: Int, op1Max :: Int, op2Min :: Int, op2Max :: Int }
+
+-- TODO Use flipped operators
+genExercise :: forall m. MonadEffect m => SettingsState -> m (Maybe ExerciseState)
+genExercise state = do
+  let
+    exState = do
+      targetOperand <- state.targetOperand
+      bounds <- getOtherOperandsBounds state targetOperand
+      let
+        (op1 /\ op2) = getOtherOperands targetOperand
+        operators = state.operatorsSelected
+      guard (size state.operatorsSelected > 0)
+      pure (targetOperand /\ op1 /\ op2 /\ bounds /\ operators)
+  case exState of
+    Nothing -> pure Nothing
+    Just (targetOperand /\ op1 /\ op2 /\ bounds /\ operators) -> do
+      operatorIdx <- liftEffect $ randomInt 0 (max (size operators - 1) 0)
+      let
+        operator :: Maybe Operator
+        operator = (toUnfoldable operators :: Array Operator) ^? element operatorIdx traversed
+      case operator of
+        Nothing -> pure Nothing
+        Just operator_ -> do
+          (val1 /\ val2 /\ ans) <-
+            case flipOperator targetOperand operator_ of
+              { isFlipped, operator: OpDivide } -> do
+                -- 
+                pure (1 /\ 2 /\ 3)
+              x -> do
+                val1 <- liftEffect $ randomInt bounds.op1Min bounds.op1Min
+                val2 <- liftEffect $ randomInt bounds.op2Min bounds.op2Min
+                let
+                  f op = (if x.isFlipped then flip else identity) op val1 val2
+                  ans =
+                    case x.operator of
+                      OpPlus -> f (+)
+                      OpMinus -> f (-)
+                      OpMultiply -> f (*)
+                      OpDivide -> error "genExercise: Division was pattern matched above"
+                pure (val1 /\ val2 /\ ans)
+          pure $ Just $
+            { operandValue: Map.fromFoldable [ (op1 /\ val1), (op2 /\ val2) ]
+            , answerCorrect: ans
+            , operatorCurrent: operator_
+            ,
+              -- TODO select randomly
+              operatorComparisonCurrent: OpEqual
+            , answerCurrent: ""
+            -- empty string means unknown answer
+            }
 
 data Action
   = NumberButtonClicked ButtonId
@@ -408,6 +562,8 @@ mkOperatorComparison state =
                     ( [ classes (settingsButtonClasses isSelected (Set.member NoOperatorComparisonSelected state.buttonErrors))
                       , onClick \_ -> ToggleOperatorComparison operator
                       ]
+                        -- TODO don't disable when other operations are available
+                        <> singletonIf isSelected aDisabled
                     )
                     [ HH.text $ getSymbol operator
                     ]
@@ -500,25 +656,26 @@ mkHeader state =
                 )
             )
         ]
-
     ]
 
 mkExercise :: forall m. ExerciseState -> H.ComponentHTML Action () m
 mkExercise state = do
   let
     renderOperand :: Operand -> H.ComponentHTML Action () m
-    renderOperand op = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe "?" show (Map.lookup op state.operandValue)) ]
+    renderOperand op = HH.span [ classes [ ps2, pe2 ] ]
+      [ HH.text (maybe (getSymbol Unknown) (\x -> (if x < 0 then (\y -> "(" <> y <> ")") else identity) (show x)) (Map.lookup op state.operandValue))
+      ]
 
-    render_ :: forall a. HasSymbol a => String -> Lens' ExerciseState (Maybe a) -> H.ComponentHTML Action () m
-    render_ def l = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe def getSymbol (view l state)) ]
+    render_ :: forall a. HasSymbol a => Lens' ExerciseState a -> H.ComponentHTML Action () m
+    render_ l = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (getSymbol (state ^. l)) ]
   HH.div [ classes [ dFlex, justifyContentCenter ] ]
     [ HH.div [ classes [ col, cExercise ] ]
         [ HH.div [ classes [ fwBolder, textCenter, cExercise ] ]
             [ HH.p_
                 [ renderOperand OpA
-                , render_ "+" (p @"operatorCurrent")
+                , render_ (p @"operatorCurrent")
                 , renderOperand OpB
-                , render_ "=" (p @"operatorComparisonCurrent")
+                , render_ (p @"operatorComparisonCurrent")
                 , renderOperand OpC
                 ]
             ]
@@ -556,7 +713,7 @@ root :: forall m. State -> H.ComponentHTML Action () m
 root state =
   HH.div [ classes [ col ] ]
     [ mkHeader state.headerState
-    , mkExercise state.exerciseState
+    , mkExercise (state.exerciseState ^. non defaultExerciseState)
     , mkKeyboard
     , mkSettings state.settingsState
     ]

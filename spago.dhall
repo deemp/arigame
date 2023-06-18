@@ -14,6 +14,7 @@ to generate this file without the comments in this block.
 , dependencies =
   [ "arrays"
   , "console"
+  , "css-frameworks"
   , "dom-indexed"
   , "effect"
   , "exceptions"
@@ -23,7 +24,7 @@ to generate this file without the comments in this block.
   , "ordered-collections"
   , "prelude"
   , "profunctor-lenses"
-  , "purescript-css-frameworks"
+  , "random"
   , "strings"
   , "tuples"
   , "typelevel-prelude"
