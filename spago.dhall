@@ -29,6 +29,9 @@ to generate this file without the comments in this block.
   , "tuples"
   , "typelevel-prelude"
   , "unsafe-coerce"
+  , "control"
+  , "foldable-traversable"
+  , "either"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]
