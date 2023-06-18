@@ -14,6 +14,9 @@ cCorrect = ClassName "correct"
 cCounter :: ClassName
 cCounter = ClassName "counter"
 
+cError :: ClassName
+cError = ClassName "error"
+
 cExercise :: ClassName
 cExercise = ClassName "exercise"
 

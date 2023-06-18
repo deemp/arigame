@@ -1,4 +1,4 @@
-module IProps where
+module Props where
 
 import Data.Monoid ((<>))
 import Halogen (AttrName(..))

@@ -12,21 +12,22 @@ to generate this file without the comments in this block.
 -}
 { name = "my-project"
 , dependencies =
-  [ "console"
+  [ "arrays"
+  , "console"
+  , "dom-indexed"
   , "effect"
   , "exceptions"
   , "halogen"
+  , "integers"
+  , "maybe"
   , "ordered-collections"
   , "prelude"
   , "profunctor-lenses"
-  , "unsafe-coerce"
-  , "arrays"
-  , "maybe"
-  , "strings"
-  , "typelevel-prelude"
   , "purescript-css-frameworks"
-  , "dom-indexed"
+  , "strings"
   , "tuples"
+  , "typelevel-prelude"
+  , "unsafe-coerce"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

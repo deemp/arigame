@@ -33,6 +33,7 @@ $max-widths: (
   @media (min-width: $min-width) {
     $color-light: #0d6efd;
     $color-dark: #0b5ed7;
+    $color-error: #dc3545;
     .header {
       > .col {
         max-width: map.get($header, col);
@@ -128,7 +129,12 @@ $max-widths: (
             background-color: $color-light;
             color: white;
           }
-        }
+          &.error {
+            border-color: $color-error;
+            background-color: white;
+            color: black;
+          }
+        } 
       }
 
       .bound {

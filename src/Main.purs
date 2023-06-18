@@ -1,34 +1,39 @@
 module Main where
 
-import CSSFrameworks.Bootstrap hiding (show, bi)
-import CSSFrameworks.BootstrapIcons
 import Prelude
 
-import Classes
+import CSSFrameworks.Bootstrap (alignItemsCenter, btn, btnClose, btnDanger, btnGroup, btnSecondary, col, col2, dFlex, formControl, formFloating, fwBolder, h75, isInvalid, justifyContentCenter, justifyContentEnd, justifyContentStart, m0, m1, me1, ms1, offcanvas, offcanvasBody, offcanvasBottom, offcanvasHeader, offcanvasTitle, p0, p1, p2, pb0, pb1, pb2, pe1, pe2, ps1, ps2, pt1, pt2, row, rowCols3, textCenter, textReset)
+import CSSFrameworks.BootstrapIcons (bi, biBackspaceFill, biCheckCircleFill, biGearFill, biXCircleFill)
+import Classes (cBound, cButtonSquare, cCorrect, cCounter, cError, cExercise, cHeader, cIncorrect, cKeyboard, cKeyboardCol, cSelect, cSelected, cSettings, cSettingsPane)
 import DOM.HTML.Indexed.ButtonType (ButtonType(..))
-import Data.Array (concat, dropEnd, intercalate, zip)
-import Data.Lens (Lens', _Just, over, view, (%~), (<>~))
+import Data.Array (concat, filter, head, intercalate, zip)
+import Data.Either (either)
+import Data.Int (fromString)
+import Data.Lens (Lens', over, view, (%~), (.~))
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Set (Set, member)
+import Data.Maybe (Maybe(..), fromMaybe, isNothing, maybe)
+import Data.Set (Set, member, size)
 import Data.Set as Set
-import Data.String.CodeUnits (fromCharArray, toCharArray)
+import Data.String (length, take)
+import Data.String.Regex (regex, replace)
+import Data.String.Regex.Flags (global)
 import Data.Tuple.Nested (type (/\), (/\))
 import Effect (Effect)
-import Effect.Class (class MonadEffect)
+import Effect.Class (class MonadEffect, liftEffect)
+import Effect.Console (log)
 import Effect.Exception (throw)
 import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML (IProp)
 import Halogen.HTML as HH
-import Halogen.HTML.Events (onClick, onValueChange)
-import Halogen.HTML.Properties (InputType(..), class_, classes, for, id, pattern, placeholder, tabIndex, type_)
+import Halogen.HTML.Events (onClick, onValueChange, onValueInput)
+import Halogen.HTML.Properties (class_, classes, for, id, placeholder, tabIndex, type_, value)
 import Halogen.VDom.Driver (runUI)
-import Lens (p)
-import Props (ariaControls, ariaLabel, ariaLabelledby, dataBsDismiss, dataBsTarget, dataBsToggle)
+import IProps (aAriaControls, aAriaLabel, aDataBsDismiss, aDataBsTarget, aDataBsToggle, aDisabled)
 import Unsafe.Coerce (unsafeCoerce)
+import Utils (p, singletonIf)
 
 main :: Effect Unit
 main = runHalogenAff do
@@ -53,25 +58,25 @@ data Operand = OpA | OpB | OpC
 derive instance Eq Operand
 derive instance Ord Operand
 
-data Operator = Plus | Minus | Multiply
+data Operator = OpPlus | OpMinus | OpMultiply
 
 derive instance Eq Operator
 derive instance Ord Operator
 
 instance HasSymbol Operator where
   getSymbol = case _ of
-    Plus -> "+"
-    Minus -> "–"
-    Multiply -> "×"
+    OpPlus -> "+"
+    OpMinus -> "–"
+    OpMultiply -> "×"
 
-data OperatorComparison = Equal
+data OperatorComparison = OpEqual
 
 derive instance Eq OperatorComparison
 derive instance Ord OperatorComparison
 
 instance HasSymbol OperatorComparison where
   getSymbol = case _ of
-    Equal -> "="
+    OpEqual -> "="
 
 data Unknown = Unknown
 
@@ -84,59 +89,71 @@ data Bound = BoundMin | BoundMax
 derive instance Eq Bound
 derive instance Ord Bound
 
-operators :: Array Operator
-operators = [ Plus, Minus, Multiply ]
+operatorsList :: Array Operator
+operatorsList = [ OpPlus, OpMinus, OpMultiply ]
 
-type AnswerCurrent =
-  { hasMinus :: Boolean
-  , number :: String
-  }
-
-type ProblemState =
+type ExerciseState =
   { operandValue :: Map Operand Int
-  , operandBoundValue :: Map (Operand /\ Bound) Int
-  , operandBoundValuePlaceholder :: Map (Operand /\ Bound) Int
-  -- Nothing ~ `?`
-  , answerCurrent :: Maybe AnswerCurrent
+  , answerCurrent :: String
+  -- empty string means unknown answer
   , answerCorrect :: Maybe Int
   , operatorCurrent :: Maybe Operator
   , operatorComparisonCurrent :: Maybe OperatorComparison
   }
 
-type Placeholder =
-  { boundMinPlaceholder :: Int
-  , boundMaxPlaceholder :: Int
-  }
-
-type State =
-  { counterAnswersCorrect :: Int
-  , counterAnswersIncorrect :: Int
-  , isSettingsOpen :: Boolean
+type SettingsState =
+  { isOpen :: Boolean
   -- avoid capturing digit input when settings is open
   , operandsSelected :: Set Operand
   , operatorsSelected :: Set Operator
+  , operandBoundValue :: Map (Operand /\ Bound) String
+  , operandBoundValuePlaceholder :: Map (Operand /\ Bound) String
   , operatorsComparisonSelected :: Set OperatorComparison
-  , isKeyboardDisabled :: Boolean
-  , problemState :: ProblemState
+  , targetOperand :: Maybe Operand
+  , buttonErrors :: Set SettingsButtonError
+  }
+
+data SettingsButtonError
+  = NoOperandSelected
+  | NoOperatorSelected
+  | NoOperatorComparisonSelected
+
+derive instance Eq SettingsButtonError
+derive instance Ord SettingsButtonError
+
+type HeaderState =
+  { counterAnswersCorrect :: Int
+  , counterAnswersIncorrect :: Int
+  }
+
+type State =
+  { headerState :: HeaderState
+  , exerciseState :: ExerciseState
+  , settingsState :: SettingsState
   }
 
 initialState :: State
 initialState =
-  { counterAnswersCorrect: 0
-  , counterAnswersIncorrect: 0
-  , isSettingsOpen: false
-  , operandsSelected: Set.empty
-  , operatorsSelected: Set.empty
-  , operatorsComparisonSelected: Set.empty
-  , isKeyboardDisabled: false
-  , problemState:
+  { headerState:
+      { counterAnswersCorrect: 0
+      , counterAnswersIncorrect: 0
+      }
+  , exerciseState:
       { operandValue: Map.empty
-      , operandBoundValue: Map.empty
-      , operandBoundValuePlaceholder: Map.empty
-      , answerCurrent: Nothing
+      , answerCurrent: ""
       , answerCorrect: Nothing
       , operatorCurrent: Nothing
       , operatorComparisonCurrent: Nothing
+      }
+  , settingsState:
+      { isOpen: false
+      , operandsSelected: Set.empty
+      , operatorsSelected: Set.empty
+      , operandBoundValue: Map.empty
+      , operandBoundValuePlaceholder: Map.empty
+      , operatorsComparisonSelected: Set.empty
+      , targetOperand: Nothing
+      , buttonErrors: Set.empty
       }
   }
 
@@ -145,35 +162,91 @@ type St = { someField :: Int }
 st :: St
 st = { someField: 1 }
 
+operandsList ∷ Array Operand
+operandsList = [ OpA, OpB, OpC ]
+
+fixNumber :: String -> String
+fixNumber s = either (const "bad") identity res
+  where
+  res = do
+    let replace_ reg repl s_ = regex reg global >>= \x -> pure $ replace x repl s_
+    s1 <- replace_ "[^0-9-]" "" s
+    s2 <- replace_ "(\\d)-+" "$1" s1
+    s3 <- replace_ "^-+" "-" s2
+    s4 <- replace_ "^(-?)0+([1-9])" "$1$2" s3
+    s5 <- replace_ "^-0+$" "-" s4
+    s6 <- replace_ "^0+$" "0" s5
+    pure s6
+
 handleAction :: forall output m. MonadEffect m => Action -> H.HalogenM State Action () output m Unit
-handleAction = case _ of
-  -- TODO modify current operand
-  NumberButtonClicked bid -> H.modify_ (over (p @"problemState" <<< p @"answerCurrent" <<< _Just <<< p @"number") <>~ show bid)
-  MinusButtonClicked -> H.modify_ (over (p @"problemState" <<< p @"answerCurrent" <<< _Just <<< p @"hasMinus") %~ not)
-  DeleteButtonClicked -> H.modify_ $
-    over
-      (p @"problemState" <<< p @"answerCurrent")
-      (_ >>= (\z -> if z.number == "" then Nothing else Just z { number = (fromCharArray (dropEnd 1 (toCharArray z.number))) }))
-  ToggleOperator op -> H.modify_ (over (p @"operatorsSelected") %~ Set.toggle op)
-  ToggleOperatorComparison op -> H.modify_ (over (p @"operatorsComparisonSelected") %~ Set.toggle op)
-  ToggleOperand op -> H.modify_ (over (p @"operandsSelected") %~ Set.toggle op)
-  ToggleSettings -> H.modify_ (over (p @"isSettingsOpen") %~ not)
-  BoundChanged op bound inp ->
-    -- TODO
-    H.modify_ identity
-  Init ->
-    -- TODO calculate the missing argument from existing
-    H.modify_ identity
+handleAction =
+  case _ of
+    NumberButtonClicked (ButtonId bid) ->
+      modifyAnswerCurrent (_ <> show bid)
+    MinusButtonClicked -> do
+      modifyAnswerCurrent fixNumber
+    DeleteButtonClicked ->
+      modifyAnswerCurrent (\x -> take (max (length x) 0) x)
+    ToggleOperator op -> do
+      toggleSelected (p @"operatorsSelected") op
+      toggleNoSelectedError (p @"operatorsSelected") NoOperatorSelected
+    ToggleOperatorComparison op -> do
+      toggleSelected (p @"operatorsComparisonSelected") op
+      toggleNoSelectedError (p @"operatorsComparisonSelected") NoOperatorComparisonSelected
+    ToggleOperand op -> do
+      toggleSelected (p @"operandsSelected") op
 
--- TODO
--- easy/hard
--- +, -, *
--- hard - negative numbers, <=, /
+      -- if 2 operands selected, set target operand
+      operands <- H.gets _.settingsState.operandsSelected
+      let
+        operand =
+          if size operands == 2 then
+            -- find a non-selected operator
+            head (filter (\x -> not (member x operands)) operandsList)
+          else Nothing
+      H.modify_ (over (p @"settingsState" <<< p @"targetOperand") .~ operand)
 
--- TODO split into components
--- root
--- - calculator
--- - settings
+      toggleNoSelectedError (p @"operandsSelected") NoOperandSelected
+    ToggleSettings -> H.modify_ (over (p @"settingsState" <<< p @"isOpen") %~ not)
+    BoundChanged op bound inp -> do
+      let inp_ = fixNumber inp
+      H.modify_ (over (p @"settingsState" <<< p @"operandBoundValue") %~ Map.insert (op /\ bound) (fixNumber inp))
+
+      liftEffect $ log inp_
+
+      -- ugly hack to re-render
+      when (fixNumber inp /= inp)
+        ( do
+            handleAction $ BoundChanged op bound (inp_ <> "9")
+            handleAction $ BoundChanged op bound inp_
+        )
+    Init -> do
+      handleAction $ ToggleOperand OpA
+      handleAction $ ToggleOperand OpB
+      handleAction $ ToggleOperator OpMinus
+      handleAction $ ToggleOperatorComparison OpEqual
+
+      handleAction $ BoundChanged OpA BoundMin "10"
+      handleAction $ BoundChanged OpA BoundMax "20"
+      handleAction $ BoundChanged OpB BoundMin "0"
+      handleAction $ BoundChanged OpB BoundMax "10"
+
+  where
+  toggleNoSelectedError :: forall output' m' a. MonadEffect m' => Lens' SettingsState (Set a) -> SettingsButtonError -> H.HalogenM State Action () output' m' Unit
+  toggleNoSelectedError l err = do
+    os <- H.gets (view (p @"settingsState" <<< l))
+    H.modify_
+      ( over (p @"settingsState" <<< p @"buttonErrors") %~
+          if
+            Set.isEmpty os then Set.insert err
+          else Set.delete err
+      )
+
+  toggleSelected :: forall output' m' a. Ord a => MonadEffect m' => Lens' SettingsState (Set a) -> a -> H.HalogenM State Action () output' m' Unit
+  toggleSelected l op = H.modify_ (over (p @"settingsState" <<< l) %~ Set.toggle op)
+
+  modifyAnswerCurrent :: (String -> String) -> H.HalogenM State Action () output m Unit
+  modifyAnswerCurrent f = H.modify_ $ over (p @"exerciseState" <<< p @"answerCurrent") %~ f
 
 data Action
   = NumberButtonClicked ButtonId
@@ -221,62 +294,96 @@ instance HasRuName Bound where
     BoundMin -> "Мин"
     BoundMax -> "Макс"
 
-mkOperandBound ∷ forall m. Operand → Bound -> Int -> H.ComponentHTML Action () m
-mkOperandBound operand bound placeholder_ =
+hasErrorBound :: SettingsState -> Operand -> Bound -> Boolean
+hasErrorBound state operand bound = (length b == 0) || not (b1 <= b2)
+  where
+  b = fromMaybe "" (Map.lookup (operand /\ bound) state.operandBoundValue)
+  b1 = fromString $ fromMaybe "0" $ Map.lookup (operand /\ BoundMin) state.operandBoundValue
+  b2 = fromString $ fromMaybe "0" $ Map.lookup (operand /\ BoundMax) state.operandBoundValue
+
+mkOperandBound ∷ forall m. SettingsState -> Operand → Bound -> H.ComponentHTML Action () m
+mkOperandBound state operand bound =
   let
     operandInputId = getSymbol operand <> "-" <> getSymbol bound
+    placeholder_ = fromMaybe "" (Map.lookup (operand /\ bound) state.operandBoundValuePlaceholder)
+    value_ = fromMaybe "" (Map.lookup (operand /\ bound) state.operandBoundValue)
+    isDisabled = state.targetOperand == Just operand
+    hasError = hasErrorBound state operand bound
   in
     HH.div [ classes [ col, pb0 ] ]
       [ HH.div [ classes [ formFloating, cBound, ps1, pe1 ] ]
-          [ HH.input
-              [ type_ InputNumber
-              , pattern "^[-]0|[1-9][0-9]*$"
-              , classes [ formControl ]
+          [ HH.input $
+              [ classes $ [ formControl ] <> singletonIf hasError isInvalid
               , id operandInputId
-              , placeholder $ show placeholder_
+              , placeholder placeholder_
+              , value value_
               , onValueChange \inp -> BoundChanged operand bound inp
-              ]
+              , onValueInput \inp -> BoundChanged operand bound inp
+              ] <> singletonIf isDisabled aDisabled
           , HH.label
               [ for operandInputId ]
               [ HH.text $ getRuName bound ]
           ]
       ]
 
-settingsClasses ∷ Boolean -> Array ClassName
-settingsClasses selected = [ cSelect, btn ] <> (if selected then [ cSelected ] else [])
+settingsButtonClasses ∷ Boolean -> Boolean -> Array ClassName
+settingsButtonClasses isSelected isError = [ btn, cSelect ] <>
+  if isError then [ cError ]
+  else singletonIf isSelected cSelected
 
-mkOperandButton ∷ forall m. State -> Operand → H.ComponentHTML Action () m
+mkOperandButton ∷ forall m. SettingsState -> Operand → H.ComponentHTML Action () m
 mkOperandButton state operand =
   HH.div [ classes [ col2, p1 ] ]
     [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-        [ HH.button [ classes (settingsClasses (member operand state.operandsSelected)), onClick \_ -> ToggleOperand operand ]
-            [ HH.text $ getSymbol operand
-            ]
+        [ let
+            isDisabled = (state.targetOperand == Just operand)
+          in
+            HH.button
+              ( [ classes $
+                    ( settingsButtonClasses
+                        ( member operand state.operandsSelected
+                            || Just operand == state.targetOperand
+                        )
+                        (Set.member NoOperandSelected state.buttonErrors)
+                    )
+                , onClick \_ -> ToggleOperand operand
+                ]
+                  <> singletonIf isDisabled aDisabled
+              )
+              [ HH.text $ getSymbol operand
+              ]
         ]
     ]
 
-mkOperand ∷ State → Operand → forall m. H.ComponentHTML Action () m
+mkOperand ∷ SettingsState → Operand → forall m. H.ComponentHTML Action () m
 mkOperand state operand =
   HH.div [ classes [ dFlex, pb2, alignItemsCenter ] ] $
     let
-      mkBound bound = mkOperandBound operand bound (fromMaybe 0 (Map.lookup (operand /\ bound) state.problemState.operandBoundValuePlaceholder))
+      mkBound bound = mkOperandBound state operand bound
     in
       [ mkBound BoundMin
       , mkOperandButton state operand
       , mkBound BoundMax
       ]
 
-mkOperators :: forall m. State -> H.ComponentHTML Action () m
+mkOperators :: forall m. SettingsState -> H.ComponentHTML Action () m
 mkOperators state =
   HH.div [ classes [ dFlex, justifyContentCenter, pb2 ] ]
     [ HH.div [ classes [ col ] ]
         [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
-            ( zip (zip operators [ justifyContentEnd, justifyContentCenter, justifyContentStart ]) [ 1, 2, 3 ] <#>
+            ( zip (zip operatorsList [ justifyContentEnd, justifyContentCenter, justifyContentStart ]) [ 1, 2, 3 ] <#>
                 ( \((x /\ justify) /\ idx) ->
                     HH.div [ classes [ (if idx == 2 then col2 else col) ] ]
                       [ HH.div
                           [ classes [ dFlex, justify ] ]
-                          [ HH.button [ classes (settingsClasses (member x state.operatorsSelected)), onClick \_ -> ToggleOperator x ]
+                          [ HH.button
+                              [ classes
+                                  ( settingsButtonClasses
+                                      (member x state.operatorsSelected)
+                                      (Set.member NoOperatorSelected state.buttonErrors)
+                                  )
+                              , onClick \_ -> ToggleOperator x
+                              ]
                               [ HH.text $ getSymbol x
                               ]
                           ]
@@ -286,19 +393,24 @@ mkOperators state =
         ]
     ]
 
-mkOperatorComparison :: forall m. State -> H.ComponentHTML Action () m
+mkOperatorComparison :: forall m. SettingsState -> H.ComponentHTML Action () m
 mkOperatorComparison state =
   let
-    operator = Equal
+    operator = OpEqual
   in
     HH.div [ classes [ dFlex, justifyContentCenter ] ]
       [ HH.div [ classes [ row, justifyContentCenter ] ]
           [ HH.div [ classes [ btnGroup, pb2 ] ]
-              [ HH.button ([ 
-                  classes (settingsClasses (member operator state.operatorsComparisonSelected)), 
-                  onClick \_ -> ToggleOperatorComparison operator ])
-                  [ HH.text $ getSymbol operator
-                  ]
+              [ let
+                  isSelected = member operator state.operatorsComparisonSelected
+                in
+                  HH.button
+                    ( [ classes (settingsButtonClasses isSelected (Set.member NoOperatorComparisonSelected state.buttonErrors))
+                      , onClick \_ -> ToggleOperatorComparison operator
+                      ]
+                    )
+                    [ HH.text $ getSymbol operator
+                    ]
               ]
           ]
       ]
@@ -306,13 +418,7 @@ mkOperatorComparison state =
 offcanvasBottomId :: String
 offcanvasBottomId = "offcanvas-bottom"
 
-settingsId :: String
-settingsId = "settings-body"
-
-offcanvasBottomLabel ∷ String
-offcanvasBottomLabel = "offcanvasBottomLabel"
-
-mkSettings :: forall m. State -> H.ComponentHTML Action () m
+mkSettings :: forall m. SettingsState -> H.ComponentHTML Action () m
 mkSettings state =
   HH.div
     [ classes $
@@ -323,7 +429,6 @@ mkSettings state =
         ]
     , tabIndex (-1)
     , id offcanvasBottomId
-    , ariaLabelledby offcanvasBottomLabel
     ]
     ( let
         colWidths = [ cSettings ]
@@ -334,28 +439,33 @@ mkSettings state =
                 , HH.button
                     [ type_ ButtonButton
                     , classes [ btnClose, textReset ]
-                    , ariaLabel "Close"
-                    , dataBsDismiss "offcanvas"
+                    , aAriaLabel "Close"
+                    , aDataBsDismiss "offcanvas"
                     , onClick \_ -> ToggleSettings
                     ]
                     []
                 ]
             ]
-        , HH.div [ classes [ offcanvasBody, pt1 ], id settingsId ]
+        , HH.div [ classes [ offcanvasBody, pt1 ] ]
             [ HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
                 [ HH.div [ classes colWidths ]
-                    [ mkOperand state OpA
-                    , mkOperators state
-                    , mkOperand state OpB
-                    , mkOperatorComparison state
-                    , mkOperand state OpC
-                    ]
+                    ( let
+                        mkF :: forall a. (SettingsState -> a) -> a
+                        mkF f = f state
+                      in
+                        [ mkF mkOperand OpA
+                        , mkF mkOperators
+                        , mkF mkOperand OpB
+                        , mkF mkOperatorComparison
+                        , mkF mkOperand OpC
+                        ]
+                    )
                 ]
             ]
         ]
     )
 
-mkHeader :: forall m. State -> H.ComponentHTML Action () m
+mkHeader :: forall m. HeaderState -> H.ComponentHTML Action () m
 mkHeader state =
   HH.div [ classes [ dFlex, justifyContentCenter, p2, cHeader ] ]
     [ HH.div [ classes [ col ] ]
@@ -364,10 +474,10 @@ mkHeader state =
                   [ HH.div [ classes [ dFlex, justifyContentEnd ] ]
                       [ HH.button
                           [ classes [ btn, p2, pt1, pb1, cSettings ]
-                          , dataBsTarget offcanvasBottomId
+                          , aDataBsTarget offcanvasBottomId
                           , type_ ButtonButton
-                          , dataBsToggle "offcanvas"
-                          , ariaControls "offcanvasBottom"
+                          , aDataBsToggle "offcanvas"
+                          , aAriaControls "offcanvasBottom"
                           , onClick \_ -> ToggleSettings
                           ]
                           [ HH.i [ classes [ bi, biGearFill, cSettings ] ] []
@@ -393,14 +503,14 @@ mkHeader state =
 
     ]
 
-mkExercise :: forall m. State -> H.ComponentHTML Action () m
+mkExercise :: forall m. ExerciseState -> H.ComponentHTML Action () m
 mkExercise state = do
   let
     renderOperand :: Operand -> H.ComponentHTML Action () m
-    renderOperand op = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe "?" show (Map.lookup op state.problemState.operandValue)) ]
+    renderOperand op = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe "?" show (Map.lookup op state.operandValue)) ]
 
-    render_ :: forall a. HasSymbol a => String -> Lens' ProblemState (Maybe a) -> H.ComponentHTML Action () m
-    render_ def l = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe def getSymbol (view l state.problemState)) ]
+    render_ :: forall a. HasSymbol a => String -> Lens' ExerciseState (Maybe a) -> H.ComponentHTML Action () m
+    render_ def l = HH.span [ classes [ ps2, pe2 ] ] [ HH.text (maybe def getSymbol (view l state)) ]
   HH.div [ classes [ dFlex, justifyContentCenter ] ]
     [ HH.div [ classes [ col, cExercise ] ]
         [ HH.div [ classes [ fwBolder, textCenter, cExercise ] ]
@@ -435,7 +545,7 @@ mkKeyboard =
                       ]
                   , mkNumberButton 0
                   , mkElement $ HH.button [ classes buttonClasses, onClick \_ -> MinusButtonClicked ]
-                      [ HH.text $ getSymbol Minus
+                      [ HH.text $ getSymbol OpMinus
                       ]
                   ]
                 )
@@ -445,8 +555,8 @@ mkKeyboard =
 root :: forall m. State -> H.ComponentHTML Action () m
 root state =
   HH.div [ classes [ col ] ]
-    [ mkHeader state
-    , mkExercise state
+    [ mkHeader state.headerState
+    , mkExercise state.exerciseState
     , mkKeyboard
-    , mkSettings state
+    , mkSettings state.settingsState
     ]

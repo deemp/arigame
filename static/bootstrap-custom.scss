@@ -10,7 +10,7 @@ $utilities: map-merge(
       (
         values: map-merge(
           map-get(map-get($utilities, $heightK), "values"),
-          (75: 70%),
+          (75: 72%),
         ),
       ),
     ),
