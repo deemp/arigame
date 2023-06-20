@@ -10,8 +10,6 @@
     purescript-tools.url = "github:deemp/flakes?dir=language-tools/purescript";
     devshell.url = "github:deemp/flakes?dir=devshell";
     codium.url = "github:deemp/flakes?dir=codium";
-    haskell-tools.url = "github:deemp/flakes?dir=language-tools/haskell";
-    nixpkgs-purescript.url = "github:deemp/nixpkgs";
     workflows.url = "github:deemp/flakes?dir=workflows";
     flakes-tools.url = "github:deemp/flakes?dir=flakes-tools";
   };
@@ -20,41 +18,35 @@
     inputs.flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = inputs.nixpkgs.legacyPackages.${system};
-        pkgs-purescript = inputs.nixpkgs-purescript.legacyPackages.${system};
-        shellTools = inputs.purescript-tools.shellTools.${system};
+        purescript-tools = inputs.purescript-tools.packages.${system};
         inherit (inputs.devshell.functions.${system}) mkShell mkCommands mkRunCommands;
         inherit (inputs.drv-tools.functions.${system}) mkShellApps mkBin;
         inherit (inputs.codium.configs.${system}) extensions extensionsCommon settingsNix settingsCommonNix;
         inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
-        inherit (inputs.haskell-tools.functions.${system}) toolsGHC;
         inherit (inputs.flakes-tools.functions.${system}) mkFlakesTools;
         inherit (inputs) workflows;
-        inherit (builtins) attrValues;
 
         scripts = mkShellApps {
           default = {
             text = "${pkgs.nodejs_18}/bin/npm run quick-start";
             description = "Run dev";
-            runtimeInputs = [ pkgs.nodejs_18 pkgs.spago pkgs-purescript.purescript ];
+            runtimeInputs = [ pkgs.nodejs_18 pkgs.spago purescript-tools.purescript ];
           };
           npmCleanCache = {
             text = ''${pkgs.nodejs_18}/bin/npm cache clean --force'';
           };
           buildGHPages = {
             text = ''npm run build:gh-pages'';
-            runtimeInputs = [ pkgs.nodejs_18 pkgs.spago pkgs-purescript.purescript ];
+            runtimeInputs = [ pkgs.nodejs_18 pkgs.spago purescript-tools.purescript ];
             description = "Build GitHub Pages";
           };
         };
 
-        tools = [
-          pkgs-purescript.purescript
-          pkgs-purescript.nodePackages.purs-tidy
-          pkgs.nodejs_18
-          pkgs.spago
-          pkgs.dhall-lsp-server
-          pkgs.nodePackages.purescript-language-server
-        ];
+        tools = __attrValues {
+          inherit (purescript-tools)
+            purescript purs-tidy purescript-language-server
+            nodejs_18 spago dhall-lsp-server;
+        };
 
         packages = {
           codium = mkCodium {
@@ -74,7 +66,8 @@
           commands =
             mkCommands "tools" tools ++
             mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
-            mkRunCommands "scripts" { inherit (packages) default buildGHPages; } ++ [
+            mkRunCommands "scripts" { inherit (packages) default buildGHPages; } ++
+            [
               {
                 name = "npm run sass";
                 help = "sass watch .sass files and generate CSS";
@@ -82,6 +75,10 @@
               {
                 name = "npm run dev";
                 help = "parcel watch files and reload browser window";
+              }
+              {
+                name = "npx lt -p <PORT> -s <SUBDOMAIN>";
+                help = "expose the app running at <PORT> at https://<SUBDOMAIN>.loca.lt";
               }
             ] ++
             mkRunCommands "infra" { inherit (packages) writeWorkflows; }
