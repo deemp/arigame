@@ -1,4 +1,4 @@
-module Props where
+module IProps where
 
 import Data.Monoid ((<>))
 import Halogen (AttrName(..))
@@ -28,3 +28,6 @@ aDataBsTarget s = attr_ "data-bs-target" ("#" <> s)
 
 aDisabled :: forall a9 b10. IProp a9 b10
 aDisabled = attr_ "disabled" "true"
+
+aType :: forall a b. String -> IProp a b
+aType t = attr_ "type" t

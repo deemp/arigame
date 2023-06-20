@@ -15,9 +15,10 @@ to generate this file without the comments in this block.
   [ "arrays"
   , "console"
   , "css-frameworks"
-  , "dom-indexed"
   , "effect"
+  , "either"
   , "exceptions"
+  , "foldable-traversable"
   , "halogen"
   , "integers"
   , "maybe"
@@ -29,9 +30,8 @@ to generate this file without the comments in this block.
   , "tuples"
   , "typelevel-prelude"
   , "unsafe-coerce"
-  , "control"
-  , "foldable-traversable"
-  , "either"
+  , "record-format"
+  , "aff"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

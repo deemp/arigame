@@ -108,3 +108,9 @@ in  upstream
     , repo = "https://github.com/deemp/purescript-css-frameworks"
     , version = "v1.0.1"
     }
+  with record-format =
+    { dependencies =
+      [ "assert", "effect", "prelude", "record", "typelevel-prelude" ]
+    , repo = "https://github.com/deemp/purescript-record-format"
+    , version = "8b44ff6dd8b30ea64f41694cd9384a247d1adb77"
+    }

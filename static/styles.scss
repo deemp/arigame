@@ -26,7 +26,7 @@ $max-widths: (
   }
 }
 
-@mixin screen($name, $header, $exercise, $keyboard, $settings-pane) {
+@mixin screen($name, $header, $exercise, $keyboard, $settings-panel) {
   $min-width: map.get($min-widths, $name);
 
   /* #{$name} */
@@ -75,6 +75,10 @@ $max-widths: (
 
     .exercise {
       font-size: map.get($exercise, font-size);
+
+      .error-message {
+        font-size: map.get($exercise, error-font-size);
+      }
     }
 
     .keyboard {
@@ -90,13 +94,13 @@ $max-widths: (
       }
     }
 
-    .settings-pane {
-      $button: map.get($settings-pane, button);
+    .settings-panel {
+      $button: map.get($settings-panel, button);
       $side: map.get($button, side);
       $color-border-grey: #dee2e6;
 
       .settings {
-        width: map.get($settings-pane, col);
+        width: map.get($settings-panel, col);
       }
 
       button {
@@ -114,9 +118,9 @@ $max-widths: (
           color: black;
 
           cursor: pointer;
-          
+
           @include active($color-light: $color-light);
-          
+
           @media (hover: hover) {
             &:hover {
               border-color: $color-light;
@@ -134,11 +138,11 @@ $max-widths: (
             background-color: white;
             color: black;
           }
-        } 
+        }
       }
 
       .bound {
-        $bound: map.get($settings-pane, bound);
+        $bound: map.get($settings-panel, bound);
 
         input {
           height: $side;
@@ -188,13 +192,14 @@ $max-widths: (
   ),
   $exercise: (
     font-size: 60px,
+    error-font-size: 30px
   ),
   $keyboard: (
     side: 80px,
     font-size: 45px,
     col: 270px,
   ),
-  $settings-pane: (
+  $settings-panel: (
     col: 100%,
     button: (
       side: 50px,
@@ -221,13 +226,14 @@ $max-widths: (
   ),
   $exercise: (
     font-size: 100px,
+    error-font-size: 30px
   ),
   $keyboard: (
     side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-pane: (
+  $settings-panel: (
     col: 800px,
     button: (
       side: 65px,
@@ -254,13 +260,14 @@ $max-widths: (
   ),
   $exercise: (
     font-size: 100px,
+    error-font-size: 50px
   ),
   $keyboard: (
     side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-pane: (
+  $settings-panel: (
     col: 800px,
     button: (
       side: 75px,
@@ -287,13 +294,14 @@ $max-widths: (
   ),
   $exercise: (
     font-size: 100px,
+    error-font-size: 50px
   ),
   $keyboard: (
     side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-pane: (
+  $settings-panel: (
     col: 800px,
     button: (
       side: 80px,
@@ -320,13 +328,14 @@ $max-widths: (
   ),
   $exercise: (
     font-size: 100px,
+    error-font-size: 50px
   ),
   $keyboard: (
     side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-pane: (
+  $settings-panel: (
     col: 800px,
     button: (
       side: 80px,
@@ -353,13 +362,14 @@ $max-widths: (
   ),
   $exercise: (
     font-size: 100px,
+    error-font-size: 50px
   ),
   $keyboard: (
     side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-pane: (
+  $settings-panel: (
     col: 800px,
     button: (
       side: 80px,

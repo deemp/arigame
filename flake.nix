@@ -83,7 +83,8 @@
                 name = "npm run dev";
                 help = "parcel watch files and reload browser window";
               }
-            ]
+            ] ++
+            mkRunCommands "infra" { inherit (packages) writeWorkflows; }
           ;
         };
       in
