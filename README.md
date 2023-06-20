@@ -54,9 +54,9 @@ An arithmetics game written for my sisters.
 1. (Optionally) Run `localtunnel` to access your app on other devices.
 
     ```console
-    npx lt -p 1234 -s calc
+    npx lt -p 1234 -s <SUBDOMAIN>
     ```
 
    - It will listen on port `1234`.
-   - The app will be available at `https://calc.loca.lt`.
-   - You may specify another subdomain via the `-s` argument.
+   - The app will be available at `https://<SUBDOMAIN>.loca.lt`.
+   - You can specify subdomain via the `-s` argument.
