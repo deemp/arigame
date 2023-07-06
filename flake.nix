@@ -1,93 +1,96 @@
 {
-  description = "Calculator game written in PureScript using Halogen";
-
-  inputs = {
-    nixpkgs_.url = "github:deemp/flakes?dir=source-flake/nixpkgs";
-    nixpkgs.follows = "nixpkgs_/nixpkgs";
-    flake-utils_.url = "github:deemp/flakes?dir=source-flake/flake-utils";
-    flake-utils.follows = "flake-utils_/flake-utils";
-    drv-tools.url = "github:deemp/flakes?dir=drv-tools";
-    purescript-tools.url = "github:deemp/flakes?dir=language-tools/purescript";
-    devshell.url = "github:deemp/flakes?dir=devshell";
-    codium.url = "github:deemp/flakes?dir=codium";
-    workflows.url = "github:deemp/flakes?dir=workflows";
-    flakes-tools.url = "github:deemp/flakes?dir=flakes-tools";
-  };
-
+  inputs.flakes.url = "github:deemp/flakes";
   outputs = inputs:
-    inputs.flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = inputs.nixpkgs.legacyPackages.${system};
-        purescript-tools = inputs.purescript-tools.packages.${system};
-        inherit (inputs.devshell.functions.${system}) mkShell mkCommands mkRunCommands;
-        inherit (inputs.drv-tools.functions.${system}) mkShellApps mkBin;
-        inherit (inputs.codium.configs.${system}) extensions extensionsCommon settingsNix settingsCommonNix;
-        inherit (inputs.codium.functions.${system}) writeSettingsJSON mkCodium;
-        inherit (inputs.flakes-tools.functions.${system}) mkFlakesTools;
-        inherit (inputs) workflows;
-
-        scripts = mkShellApps {
-          default = {
-            text = "${pkgs.nodejs_18}/bin/npm run quick-start";
-            description = "Run dev";
-            runtimeInputs = [ pkgs.nodejs_18 pkgs.spago purescript-tools.purescript ];
-          };
-          npmCleanCache = {
-            text = ''${pkgs.nodejs_18}/bin/npm cache clean --force'';
-          };
-          buildGHPages = {
-            text = ''npm run build:gh-pages'';
-            runtimeInputs = [ pkgs.nodejs_18 pkgs.spago purescript-tools.purescript ];
-            description = "Build GitHub Pages";
-          };
+    let
+      inputs_ =
+        let flakes = inputs.flakes.flakes; in
+        {
+          inherit (flakes.source-flake) nixpkgs flake-utils;
+          inherit (flakes) drv-tools devshell codium workflows flakes-tools;
+          purescript-tools = flakes.language-tools.purescript;
+          inherit flakes;
         };
 
-        tools = __attrValues {
-          inherit (purescript-tools)
-            purescript purs-tidy purescript-language-server
-            nodejs_18 spago dhall-lsp-server;
-        };
+      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
 
-        packages = {
-          codium = mkCodium {
-            extensions = extensionsCommon // { inherit (extensions) purescript; };
-            runtimeDependencies = tools;
-          };
-          writeSettings = writeSettingsJSON (settingsCommonNix // { inherit (settingsNix) vscode-dhall-lsp-server ide-purescript; });
-          writeWorkflows = import ./nix-files/workflow.nix {
-            name = "ci";
-            inherit workflows system;
-          };
-          inherit (mkFlakesTools [ "." ]) updateLocks;
-        } // scripts;
+      outputs_ =
+        inputs__:
+        let inputs = inputs_ // inputs__; in
 
-        devShells.default = mkShell {
-          packages = tools;
-          commands =
-            mkCommands "tools" tools ++
-            mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
-            mkRunCommands "scripts" { inherit (packages) default buildGHPages; } ++
-            [
-              {
-                name = "npm run sass";
-                help = "sass watch .sass files and generate CSS";
-              }
-              {
-                name = "npm run dev";
-                help = "parcel watch files and reload browser window";
-              }
-              {
-                name = "npx lt -p <PORT> -s <SUBDOMAIN>";
-                help = "expose the app running at <PORT> at https://<SUBDOMAIN>.loca.lt";
-              }
-            ] ++
-            mkRunCommands "infra" { inherit (packages) writeWorkflows; }
-          ;
-        };
-      in
-      {
-        inherit packages devShells;
-      });
+        inputs.flake-utils.lib.eachDefaultSystem (system:
+        let
+          pkgs = inputs.nixpkgs.legacyPackages.${system};
+          purescript-tools = inputs.purescript-tools.packages.${system};
+          inherit (inputs.devshell.lib.${system}) mkShell mkCommands mkRunCommands;
+          inherit (inputs.drv-tools.lib.${system}) mkShellApps mkBin;
+          inherit (inputs.codium.lib.${system}) extensions extensionsCommon settingsNix settingsCommonNix writeSettingsJSON mkCodium;
+          inherit (inputs.flakes-tools.lib.${system}) mkFlakesTools;
+          inherit (inputs) workflows;
+
+          scripts = mkShellApps {
+            default = {
+              text = "${pkgs.nodejs_18}/bin/npm run quick-start";
+              description = "Run dev";
+              runtimeInputs = [ pkgs.nodejs_18 pkgs.spago purescript-tools.purescript ];
+            };
+            npmCleanCache = {
+              text = ''${pkgs.nodejs_18}/bin/npm cache clean --force'';
+            };
+            buildGHPages = {
+              text = ''npm run build:gh-pages'';
+              runtimeInputs = [ pkgs.nodejs_18 pkgs.spago purescript-tools.purescript ];
+              description = "Build GitHub Pages";
+            };
+          };
+
+          tools = __attrValues {
+            inherit (purescript-tools)
+              purescript purs-tidy purescript-language-server
+              nodejs_18 spago dhall-lsp-server;
+          };
+
+          packages = {
+            codium = mkCodium {
+              extensions = extensionsCommon // { inherit (extensions) purescript; };
+              runtimeDependencies = tools;
+            };
+            writeSettings = writeSettingsJSON (settingsCommonNix // { inherit (settingsNix) vscode-dhall-lsp-server ide-purescript; });
+            writeWorkflows = import ./nix-files/workflow.nix {
+              name = "ci";
+              inherit workflows system scripts;
+            };
+            inherit (mkFlakesTools [ "." ]) updateLocks;
+          } // scripts;
+
+          devShells.default = mkShell {
+            packages = tools;
+            commands =
+              mkCommands "tools" tools ++
+              mkRunCommands "ide" { "codium ." = packages.codium; inherit (packages) writeSettings; } ++
+              mkRunCommands "scripts" { inherit (packages) default buildGHPages; } ++
+              [
+                {
+                  name = "npm run sass";
+                  help = "sass watch .sass files and generate CSS";
+                }
+                {
+                  name = "npm run dev";
+                  help = "parcel watch files and reload browser window";
+                }
+                {
+                  name = "npx lt -p <PORT> -s <SUBDOMAIN>";
+                  help = "expose the app running at <PORT> at https://<SUBDOMAIN>.loca.lt";
+                }
+              ] ++
+              mkRunCommands "infra" { inherit (packages) writeWorkflows; }
+            ;
+          };
+        in
+        {
+          inherit packages devShells;
+        });
+    in
+    outputs;
 
   nixConfig = {
     extra-substituters = [

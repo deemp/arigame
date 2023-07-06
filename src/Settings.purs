@@ -2,99 +2,39 @@ module Settings where
 
 import Prelude
 
-import Data (Bound(..), Operand(..), Operator(..), OperatorComparison(..), getOtherOperands, operatorsAll)
-import Actions (Action(..))
+import Actions (Toggle(..))
 import CSSFrameworks.Bootstrap (alignItemsCenter, btn, btnClose, btnGroup, col, col2, dFlex, formControl, formFloating, h75, isInvalid, justifyContentCenter, justifyContentEnd, justifyContentStart, me1, ms1, offcanvas, offcanvasBody, offcanvasBottom, offcanvasHeader, offcanvasTitle, p1, pb0, pb1, pb2, pe1, ps1, pt1, pt2, row, textReset)
 import ClassNames (cBound, cError, cSelect, cSelected, cSettings, cSettingsPanel)
-import Classes (getSymbol)
-import Data.Array (concat, elem, zip)
+import Common (Bound(..), Operand(..), Operator(..), OperatorComparison(..), fixNumber, getOtherOperands, getSymbol, operandsAll, operatorsAll)
+import Data.Array (concat, elem, filter, head, zip)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Foldable (maximum, minimum)
 import Data.Int (fromString)
-import Data.Lens ((%~))
+import Data.Lens (Lens', over, (%~), (.~), (?~))
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Set (Set, member)
+import Data.Set (Set, member, size)
 import Data.Set as Set
 import Data.String (length)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested (type (/\), (/\))
+import Effect.Aff.Class (class MonadAff)
 import Halogen (ClassName)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (ButtonType(..), classes, for, id, placeholder, tabIndex, type_, value)
 import IProps (aAriaLabel, aDataBsDismiss, aDisabled, aType)
-import Record.Format (format)
-import Utils (error, p, singletonIf)
+import Utils (b, error, fromJust, singletonIf)
 
 offcanvasBottomId :: String
 offcanvasBottomId = "offcanvas-bottom"
 
-type SettingsState =
-  { isOpen :: Boolean
-  -- avoid capturing digit input when settings is open
-  , operandsSelected :: Set Operand
-  , operatorsSelected :: Set Operator
-  , operandBoundValue :: Map (Operand /\ Bound) String
-  , operandBoundValuePlaceholder :: Map (Operand /\ Bound) String
-  , operatorsComparisonSelected :: Set OperatorComparison
-  , operandTarget :: Maybe Operand
-  , buttonErrors :: Set SettingsError
-  }
-
-getOtherOperandsBounds :: SettingsState -> Operand -> Either SettingsError OtherOperandsBounds
-getOtherOperandsBounds state operand = operandsBounds
-  where
-  (op1 /\ op2) = getOtherOperands operand
-
-  operandBound op bound = maybe (Left $ NoBoundSet op bound) (Right) (fromString =<< Map.lookup (op /\ bound) state.operandBoundValue)
-  operandBounds op = do
-    opMin <- operandBound op BoundMin
-    opMax <- operandBound op BoundMax
-    when (opMin > opMax) (Left (BoundMinGreaterThanBoundMax op))
-    pure (opMin /\ opMax)
-
-  operandsBounds = do
-    when (Set.isEmpty state.operatorsSelected) (Left NoOperatorSelected)
-    when (Set.isEmpty state.operatorsComparisonSelected) (Left NoOperatorComparisonSelected)
-    (op1Min /\ op1Max) <- operandBounds op1
-    (op2Min /\ op2Max) <- operandBounds op2
-    pure { op1Min, op1Max, op2Min, op2Max }
-
-updateTargetOperandBounds :: SettingsState -> SettingsState
-updateTargetOperandBounds state = do
-  case state.operandTarget of
-    Nothing -> state
-    Just op ->
-      let
-        modifyBounds operators =
-          let
-            modifyVal mod_ = state # p @"operandBoundValue" %~ mod_
-          in
-            case getOtherOperandsBounds state op of
-              Left _ -> modifyVal (Map.delete (op /\ BoundMin) <<< Map.delete (op /\ BoundMax))
-              Right bounds -> do
-                let (mini /\ maxi) = calculateBounds (Array.fromFoldable operators) bounds
-                modifyVal (Map.insert (op /\ BoundMin) (show mini) <<< Map.insert (op /\ BoundMax) (show maxi))
-      in
-        modifyBounds (flipOperators state op)
-
-type OtherOperandsBounds = { op1Min :: Int, op1Max :: Int, op2Min :: Int, op2Max :: Int }
-
-getOperandTarget :: SettingsState -> Either SettingsError Operand
-getOperandTarget state
-  | Set.isEmpty state.operandsSelected = Left NoOperandSelected
-  | Set.size state.operandsSelected == 1 =
-      case Set.findMax state.operandsSelected of
-        Nothing -> error "no max in set of operands"
-        Just op -> Left $ OnlyOneOperandSelected op
-  | otherwise =
-      case state.operandTarget of
-        Nothing -> error "Target operand not selected, but set size is 2"
-        Just operandTarget -> Right operandTarget
+data Action
+  = ActionToggle Toggle
+  | ActionInput Operand Bound String
 
 data SettingsError
   = NoOperandSelected
@@ -103,27 +43,162 @@ data SettingsError
   | NoBoundSet Operand Bound
   | BoundMinGreaterThanBoundMax Operand
   | OnlyOneOperandSelected Operand
-  | NoExerciseGenerated
+
+type State =
+  { isOpen :: Boolean
+  -- avoid capturing digit input when settings is open
+  , operandsSelected :: Set Operand
+  , operatorsSelected :: Set Operator
+  , operandTarget :: Maybe Operand
+  , operandBoundValue :: Map (Operand /\ Bound) String
+  , operandBoundValuePlaceholder :: Map (Operand /\ Bound) String
+  , operatorsComparisonSelected :: Set OperatorComparison
+  , error :: Maybe SettingsError
+  }
+
+defaultState :: State
+defaultState =
+  { isOpen: false
+  , operandsSelected: Set.empty
+  , operatorsSelected: Set.empty
+  , operandTarget: Nothing
+  , operandBoundValue: Map.empty
+  , operandBoundValuePlaceholder: Map.empty
+  , operatorsComparisonSelected: Set.empty
+  , error: Just NoOperandSelected
+  }
 
 derive instance Eq SettingsError
 derive instance Ord SettingsError
 
-renderError :: SettingsError -> String
-renderError e =
-  case e of
-    NoOperandSelected -> "Нажми на 'A' и 'Б'"
-    NoOperatorSelected -> "Нажми на '+'"
-    NoOperatorComparisonSelected -> "Нажми на '='"
-    NoBoundSet op bound -> format @"У '{op}' напиши '{bound}'" { op: getSymbol op, bound: getSymbol bound }
-    BoundMinGreaterThanBoundMax op -> format @"У '{op}' 'Мин' больше, чем 'Макс'" { op: getSymbol op }
-    OnlyOneOperandSelected op ->
-      let
-        op1 /\ op2 = (getOtherOperands op)
-      in
-        format @"Нажми на '{op1}' или '{op2}'" { op1: getSymbol op1, op2: getSymbol op2 }
-    NoExerciseGenerated -> "Придумываю пример..."
+type Output = Either SettingsError State
 
-flipOperators :: SettingsState -> Operand -> Set FlippedOperator
+data Query (a :: Type)
+  = QueryState (State -> a)
+  | QueryToggle Toggle a
+  | QueryInput Operand Bound String a
+
+type Slot id = H.Slot Query Output id
+
+component :: forall input m. MonadAff m => H.Component Query input Output m
+component = H.mkComponent
+  { initialState: const defaultState
+  , render: render
+  , eval: H.mkEval $ H.defaultEval
+      { handleAction = handleAction
+      , handleQuery = handleQuery
+      }
+  }
+  where
+  handleQuery :: forall a. Query a -> H.HalogenM State Action () Output m (Maybe a)
+  handleQuery = case _ of
+    QueryState reply -> H.get >>= (pure <<< Just <<< reply)
+    QueryToggle toggle reply -> handleAction (ActionToggle toggle) $> Just reply
+    QueryInput operand bound s reply -> handleAction (ActionInput operand bound s) $> Just reply
+
+  handleAction :: Action -> H.HalogenM State Action () Output m Unit
+  handleAction action =
+    do
+      case action of
+        ActionToggle toggle ->
+          do
+            case toggle of
+              ToggleOperator op -> do
+                toggleSelected (b @"operatorsSelected") op
+              ToggleOperatorComparison op -> do
+                -- TODO toggle, not only insert
+                H.modify_ (over (b @"operatorsComparisonSelected") %~ Set.insert op)
+              ToggleOperand op -> do
+                toggleSelected (b @"operandsSelected") op
+              ToggleSettings -> do
+                H.modify_ (over (b @"isOpen") %~ not)
+        ActionInput op bound inp -> do
+          let inp_ = fixNumber inp
+          H.modify_ (over (b @"operandBoundValue") %~ Map.insert (op /\ bound) inp_)
+
+          -- FIXME Hack to trigger state change and re-render
+          when (inp_ /= inp)
+            ( do
+                handleAction $ ActionInput op bound (inp_ <> "9")
+                handleAction $ ActionInput op bound inp_
+            )
+
+      H.modify_ update_
+      state <- H.get
+      H.raise $ maybe (Right state) Left state.error
+
+  toggleSelected :: forall a. Ord a => Lens' State (Set a) -> a -> H.HalogenM State Action () Output m Unit
+  toggleSelected l op = H.modify_ (over l %~ Set.toggle op)
+
+-- FIXME
+update_ :: State -> State
+update_ state = state { error = Nothing } # updateOperators # updateOperandTarget # updateOperandTargetBounds
+
+updateOperators :: State -> State
+updateOperators state
+  | Set.size state.operatorsSelected == 0 = state # b @"error" ?~ NoOperatorSelected
+  | otherwise = state
+
+updateOperandTarget :: State -> State
+updateOperandTarget state = state_
+  where
+  operands = state.operandsSelected
+  newOperand
+    | size operands == 2 =
+        Right $
+          fromJust
+            "Set of size 2 doesn't have elements"
+            (head (filter (\x -> not (member x operands)) operandsAll))
+    | size operands == 1 =
+        Left
+          $ OnlyOneOperandSelected
+          $ fromJust "Set of size 1 doesn't have elements" (Set.findMax operands)
+    | Set.isEmpty operands = Left NoOperandSelected
+    | otherwise = error "Set can't have 3 operands"
+  state_ =
+    case newOperand of
+      Left err -> state # b @"error" ?~ err # b @"operandTarget" .~ Nothing
+      Right op -> state # b @"operandTarget" ?~ op
+
+updateOperandTargetBounds :: State -> State
+updateOperandTargetBounds state =
+  case state.operandTarget of
+    Nothing -> updateOperandTarget state
+    Just op ->
+      let
+        modifyBounds operators =
+          let
+            modifyVal mod_ = state # b @"operandBoundValue" %~ mod_
+          in
+            case getOtherOperandsBounds state op of
+              Left err -> modifyVal (Map.delete (op /\ BoundMin) <<< Map.delete (op /\ BoundMax)) # b @"error" ?~ err
+              Right bounds -> do
+                let (mini /\ maxi) = calculateBounds (Array.fromFoldable operators) bounds
+                modifyVal (Map.insert (op /\ BoundMin) (show mini) <<< Map.insert (op /\ BoundMax) (show maxi))
+      in
+        modifyBounds (flipOperators state op)
+
+getOtherOperandsBounds :: State -> Operand -> Either SettingsError OtherOperandsBounds
+getOtherOperandsBounds state operand = operandsBounds
+  where
+  (op1 /\ op2) = getOtherOperands operand
+
+  operandBound op bound = maybe (Left (NoBoundSet op bound)) Right (fromString =<< Map.lookup (op /\ bound) state.operandBoundValue)
+  operandBounds op = do
+    opMin <- operandBound op BoundMin
+    opMax <- operandBound op BoundMax
+    pure (opMin /\ opMax)
+
+  operandsBounds = do
+    (op1Min /\ op1Max) <- operandBounds op1
+    when (op1Max < op1Min) (Left (BoundMinGreaterThanBoundMax op1))
+    (op2Min /\ op2Max) <- operandBounds op2
+    when (op2Max < op2Min) (Left (BoundMinGreaterThanBoundMax op2))
+    pure { op1Min, op1Max, op2Min, op2Max }
+
+type OtherOperandsBounds = { op1Min :: Int, op1Max :: Int, op2Min :: Int, op2Max :: Int }
+
+flipOperators :: State -> Operand -> Set FlippedOperator
 flipOperators state operand = Set.map (flipOperator operand) state.operatorsSelected
 
 flipOperator :: Operand -> (Operator -> FlippedOperator)
@@ -169,8 +244,8 @@ invertOperator op isFlipped = { operator, isFlipped }
       OpMultiply -> OpDivide
       OpDivide -> OpMultiply
 
-mkSettings :: forall m. SettingsState -> H.ComponentHTML Action () m
-mkSettings state =
+render :: forall m. State -> H.ComponentHTML Action () m
+render state =
   HH.div
     [ classes $
         [ offcanvas
@@ -192,7 +267,7 @@ mkSettings state =
                     , classes [ btnClose, textReset ]
                     , aAriaLabel "Close"
                     , aDataBsDismiss "offcanvas"
-                    , onClick \_ -> ToggleSettings
+                    , onClick \_ -> ActionToggle ToggleSettings
                     ]
                     []
                 ]
@@ -201,7 +276,7 @@ mkSettings state =
             [ HH.div [ classes [ dFlex, justifyContentCenter, pt2, pb2 ] ]
                 [ HH.div [ classes colWidths ]
                     ( let
-                        mkF :: forall a. (SettingsState -> a) -> a
+                        mkF :: forall a. (State -> a) -> a
                         mkF f = f state
                       in
                         [ mkF mkOperand OpA
@@ -216,7 +291,7 @@ mkSettings state =
         ]
     )
 
-mkOperators :: forall m. SettingsState -> H.ComponentHTML Action () m
+mkOperators :: forall m. State -> H.ComponentHTML Action () m
 mkOperators state =
   HH.div [ classes [ dFlex, justifyContentCenter, pb2 ] ]
     [ HH.div [ classes [ col ] ]
@@ -230,9 +305,9 @@ mkOperators state =
                               [ classes
                                   ( settingsButtonClasses
                                       (member x state.operatorsSelected)
-                                      (Set.member NoOperatorSelected state.buttonErrors)
+                                      (checkHasError state NoOperatorSelected)
                                   )
-                              , onClick \_ -> ToggleOperator x
+                              , onClick \_ -> ActionToggle (ToggleOperator x)
                               ]
                               [ HH.text $ getSymbol x
                               ]
@@ -243,7 +318,7 @@ mkOperators state =
         ]
     ]
 
-mkOperatorComparison :: forall m. SettingsState -> H.ComponentHTML Action () m
+mkOperatorComparison :: forall m. State -> H.ComponentHTML Action () m
 mkOperatorComparison state =
   let
     operator = OpEqual
@@ -255,8 +330,11 @@ mkOperatorComparison state =
                   isSelected = Set.member operator state.operatorsComparisonSelected
                 in
                   HH.button
-                    ( [ classes (settingsButtonClasses isSelected (Set.member NoOperatorComparisonSelected state.buttonErrors))
-                      , onClick \_ -> ToggleOperatorComparison operator
+                    ( [ classes
+                          ( settingsButtonClasses isSelected
+                              (checkHasError state NoOperatorComparisonSelected)
+                          )
+                      , onClick \_ -> ActionToggle $ ToggleOperatorComparison operator
                       ]
                         -- TODO don't disable when other comparison operations are available
                         <> singletonIf isSelected aDisabled
@@ -267,14 +345,14 @@ mkOperatorComparison state =
           ]
       ]
 
-hasErrorBound :: SettingsState -> Operand -> Bound -> Boolean
+hasErrorBound :: State -> Operand -> Bound -> Boolean
 hasErrorBound state operand bound = (length b == 0) || not (b1 <= b2)
   where
   b = fromMaybe "" (Map.lookup (operand /\ bound) state.operandBoundValue)
   b1 = fromString $ fromMaybe "0" $ Map.lookup (operand /\ BoundMin) state.operandBoundValue
   b2 = fromString $ fromMaybe "0" $ Map.lookup (operand /\ BoundMax) state.operandBoundValue
 
-mkOperandBound ∷ forall m. SettingsState -> Operand → Bound -> H.ComponentHTML Action () m
+mkOperandBound ∷ forall m. State -> Operand -> Bound -> H.ComponentHTML Action () m
 mkOperandBound state operand bound =
   let
     operandInputId = getSymbol operand <> "-" <> getSymbol bound
@@ -290,7 +368,7 @@ mkOperandBound state operand bound =
               , id operandInputId
               , placeholder placeholder_
               , value value_
-              , onValueInput \inp -> BoundChanged operand bound inp
+              , onValueInput \inp -> ActionInput operand bound inp
               , aType "number"
               ] <> singletonIf isDisabled aDisabled
           , HH.label
@@ -299,7 +377,7 @@ mkOperandBound state operand bound =
           ]
       ]
 
-mkOperand ∷ SettingsState → Operand → forall m. H.ComponentHTML Action () m
+mkOperand ∷ State → Operand → forall m. H.ComponentHTML Action () m
 mkOperand state operand =
   HH.div [ classes [ dFlex, pb2, alignItemsCenter ] ] $
     let
@@ -315,7 +393,7 @@ settingsButtonClasses isSelected isError = [ btn, cSelect ] <>
   if isError then [ cError ]
   else singletonIf isSelected cSelected
 
-mkOperandButton ∷ forall m. SettingsState -> Operand → H.ComponentHTML Action () m
+mkOperandButton ∷ forall m. State -> Operand -> H.ComponentHTML Action () m
 mkOperandButton state operand =
   HH.div [ classes [ col2, p1 ] ]
     [ HH.div [ classes [ dFlex, justifyContentCenter ] ]
@@ -326,11 +404,11 @@ mkOperandButton state operand =
               ( [ classes $
                     ( settingsButtonClasses
                         ( member operand state.operandsSelected
-                            || Just operand == state.operandTarget
+                            || isDisabled
                         )
-                        (Set.member NoOperandSelected state.buttonErrors)
+                        (checkHasError state NoOperandSelected)
                     )
-                , onClick \_ -> ToggleOperand operand
+                , onClick \_ -> ActionToggle (ToggleOperand operand)
                 ]
                   <> singletonIf isDisabled aDisabled
               )
@@ -339,3 +417,5 @@ mkOperandButton state operand =
         ]
     ]
 
+checkHasError :: State -> SettingsError -> Boolean
+checkHasError state error_ = maybe false ((==) error_) state.error

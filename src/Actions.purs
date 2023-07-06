@@ -1,14 +1,15 @@
 module Actions where
 
-import Data (Bound, ButtonId, Operand, Operator, OperatorComparison)
+import Common (Bound, ButtonId, Operand, Operator, OperatorComparison)
 
-data Action
-  = NumberButtonClicked ButtonId
-  | MinusButtonClicked
-  | DeleteButtonClicked
-  | ToggleOperator Operator
+
+data Button
+  = ButtonNumber ButtonId
+  | ButtonMinus
+  | ButtonDelete
+
+data Toggle
+  = ToggleOperator Operator
   | ToggleOperatorComparison OperatorComparison
   | ToggleOperand Operand
   | ToggleSettings
-  | BoundChanged Operand Bound String
-  | Init

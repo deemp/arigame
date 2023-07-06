@@ -26,6 +26,9 @@ $max-widths: (
   }
 }
 
+$green: green;
+$red: red;
+
 @mixin screen($name, $header, $exercise, $keyboard, $settings-panel) {
   $min-width: map.get($min-widths, $name);
 
@@ -34,8 +37,9 @@ $max-widths: (
     $color-light: #0d6efd;
     $color-dark: #0b5ed7;
     $color-error: #dc3545;
+
     .header {
-      > .col {
+      >.col {
         max-width: map.get($header, col);
       }
 
@@ -56,11 +60,11 @@ $max-widths: (
         }
 
         &.correct {
-          color: green;
+          color: $green;
         }
 
         &.incorrect {
-          color: red;
+          color: $red;
         }
       }
 
@@ -79,6 +83,14 @@ $max-widths: (
       .error-message {
         font-size: map.get($exercise, error-font-size);
       }
+
+      .correct span {
+        color: $green
+      }
+
+      .incorrect span {
+        color: $red
+      }
     }
 
     .keyboard {
@@ -89,6 +101,7 @@ $max-widths: (
         max-width: 100%;
         max-height: 100%;
       }
+
       .keyboard-col {
         width: map.get($keyboard, col);
       }
@@ -128,11 +141,13 @@ $max-widths: (
               @include active($color-light: $color-light);
             }
           }
+
           &.selected {
             border-color: $color-light;
             background-color: $color-light;
             color: white;
           }
+
           &.error {
             border-color: $color-error;
             background-color: white;
@@ -184,207 +199,135 @@ $max-widths: (
   }
 }
 
-@include screen(
-  $name: xs,
-  $header: (
-    icon-font-size: 35px,
+@include screen($name: xs,
+  $header: (icon-font-size: 35px,
     col: 100%,
   ),
-  $exercise: (
-    font-size: 60px,
-    error-font-size: 30px
-  ),
-  $keyboard: (
-    side: 80px,
+  $exercise: (font-size: 60px,
+    error-font-size: 30px),
+  $keyboard: (side: 80px,
     font-size: 45px,
     col: 270px,
   ),
-  $settings-panel: (
-    col: 100%,
-    button: (
-      side: 50px,
+  $settings-panel: (col: 100%,
+    button: (side: 50px,
       font-size: 20px,
     ),
-    bound: (
-      input: (
-        font-size: 18px,
+    bound: (input: (font-size: 18px,
       ),
-      label: (
-        font-size: 18px,
-        after: (
-          font-size: 8,
+      label: (font-size: 18px,
+        after: (font-size: 8,
         ),
       ),
     ),
-  )
-);
-@include screen(
-  $name: sm,
-  $header: (
-    icon-font-size: 60px,
+  ));
+@include screen($name: sm,
+  $header: (icon-font-size: 60px,
     col: 100%,
   ),
-  $exercise: (
-    font-size: 100px,
-    error-font-size: 30px
-  ),
-  $keyboard: (
-    side: 150px,
+  $exercise: (font-size: 100px,
+    error-font-size: 30px),
+  $keyboard: (side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-panel: (
-    col: 800px,
-    button: (
-      side: 65px,
+  $settings-panel: (col: 800px,
+    button: (side: 65px,
       font-size: 30px,
     ),
-    bound: (
-      input: (
-        font-size: 20px,
+    bound: (input: (font-size: 20px,
       ),
-      label: (
-        font-size: 20px,
-        after: (
-          font-size: 20px,
+      label: (font-size: 20px,
+        after: (font-size: 20px,
         ),
       ),
     ),
-  )
-);
-@include screen(
-  $name: md,
-  $header: (
-    icon-font-size: 60px,
+  ));
+@include screen($name: md,
+  $header: (icon-font-size: 60px,
     col: 1100px,
   ),
-  $exercise: (
-    font-size: 100px,
-    error-font-size: 50px
-  ),
-  $keyboard: (
-    side: 150px,
+  $exercise: (font-size: 100px,
+    error-font-size: 50px),
+  $keyboard: (side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-panel: (
-    col: 800px,
-    button: (
-      side: 75px,
+  $settings-panel: (col: 800px,
+    button: (side: 75px,
       font-size: 30px,
     ),
-    bound: (
-      input: (
-        font-size: 20px,
+    bound: (input: (font-size: 20px,
       ),
-      label: (
-        font-size: 25px,
-        after: (
-          font-size: 20px,
+      label: (font-size: 25px,
+        after: (font-size: 20px,
         ),
       ),
     ),
-  )
-);
-@include screen(
-  $name: lg,
-  $header: (
-    icon-font-size: 60px,
+  ));
+@include screen($name: lg,
+  $header: (icon-font-size: 60px,
     col: 100%,
   ),
-  $exercise: (
-    font-size: 100px,
-    error-font-size: 50px
-  ),
-  $keyboard: (
-    side: 150px,
+  $exercise: (font-size: 100px,
+    error-font-size: 50px),
+  $keyboard: (side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-panel: (
-    col: 800px,
-    button: (
-      side: 80px,
+  $settings-panel: (col: 800px,
+    button: (side: 80px,
       font-size: 35px,
     ),
-    bound: (
-      input: (
-        font-size: 20px,
+    bound: (input: (font-size: 20px,
       ),
-      label: (
-        font-size: 25px,
-        after: (
-          font-size: 20px,
+      label: (font-size: 25px,
+        after: (font-size: 20px,
         ),
       ),
     ),
-  )
-);
-@include screen(
-  $name: xl,
-  $header: (
-    icon-font-size: 60px,
+  ));
+@include screen($name: xl,
+  $header: (icon-font-size: 60px,
     col: 1100px,
   ),
-  $exercise: (
-    font-size: 100px,
-    error-font-size: 50px
-  ),
-  $keyboard: (
-    side: 150px,
+  $exercise: (font-size: 100px,
+    error-font-size: 50px),
+  $keyboard: (side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-panel: (
-    col: 800px,
-    button: (
-      side: 80px,
+  $settings-panel: (col: 800px,
+    button: (side: 80px,
       font-size: 35px,
     ),
-    bound: (
-      input: (
-        font-size: 20px,
+    bound: (input: (font-size: 20px,
       ),
-      label: (
-        font-size: 25px,
-        after: (
-          font-size: 20px,
+      label: (font-size: 25px,
+        after: (font-size: 20px,
         ),
       ),
     ),
-  )
-);
-@include screen(
-  $name: xxl,
-  $header: (
-    icon-font-size: 60px,
+  ));
+@include screen($name: xxl,
+  $header: (icon-font-size: 60px,
     col: 1100px,
   ),
-  $exercise: (
-    font-size: 100px,
-    error-font-size: 50px
-  ),
-  $keyboard: (
-    side: 150px,
+  $exercise: (font-size: 100px,
+    error-font-size: 50px),
+  $keyboard: (side: 150px,
     font-size: 70px,
     col: 550px,
   ),
-  $settings-panel: (
-    col: 800px,
-    button: (
-      side: 80px,
+  $settings-panel: (col: 800px,
+    button: (side: 80px,
       font-size: 35px,
     ),
-    bound: (
-      input: (
-        font-size: 20px,
+    bound: (input: (font-size: 20px,
       ),
-      label: (
-        font-size: 25px,
-        after: (
-          font-size: 20px,
+      label: (font-size: 25px,
+        after: (font-size: 20px,
         ),
       ),
     ),
-  )
-);
+  ));

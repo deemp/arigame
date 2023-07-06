@@ -1,10 +1,16 @@
-module Data where
+module Common where
 
-import Classes
 
+import Prelude
+
+import Data.Either (either)
+import Data.String.Regex (replace, regex)
+import Data.String.Regex.Flags (global)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested ((/\))
-import Prelude (class Eq, class Ord, class Show)
+
+class HasSymbol a where
+  getSymbol :: a -> String
 
 data Operand = OpA | OpB | OpC
 
@@ -23,6 +29,9 @@ getOtherOperands =
     OpA -> (OpB /\ OpC)
     OpB -> (OpA /\ OpC)
     OpC -> (OpA /\ OpB)
+
+operandsAll ∷ Array Operand
+operandsAll = [ OpA, OpB, OpC ]
 
 data Operator = OpPlus | OpMinus | OpMultiply | OpDivide
 
@@ -67,3 +76,16 @@ derive newtype instance Show ButtonId
 
 operatorsAll :: Array Operator
 operatorsAll = [ OpPlus, OpMinus, OpMultiply ]
+
+fixNumber :: String -> String
+fixNumber s = either (const "bad") identity res
+  where
+  res = do
+    let replace_ reg repl s_ = regex reg global >>= \x -> pure $ replace x repl s_
+    s1 <- replace_ "[^0-9-]" "" s
+    s2 <- replace_ "(\\d)-+" "$1" s1
+    s3 <- replace_ "^-+" "-" s2
+    s4 <- replace_ "^(-?)0+([1-9])" "$1$2" s3
+    s5 <- replace_ "^-0+$" "-" s4
+    s6 <- replace_ "^0+$" "0" s5
+    pure s6

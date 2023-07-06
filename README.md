@@ -60,3 +60,9 @@ An arithmetics game written for my sisters.
    - It will listen on port `1234`.
    - The app will be available at `https://<SUBDOMAIN>.loca.lt`.
    - You can specify subdomain via the `-s` argument.
+
+## References
+
+- [Well-typed printfs cannot go wrong](https://blog.csongor.co.uk/purescript-safe-printf/)
+- [purescript-barlow-lens](https://github.com/sigma-andex/purescript-barlow-lens)
+- [Instance Chains](https://github.com/purescript/documentation/blob/master/language/Type-Classes.md)

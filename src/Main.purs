@@ -2,211 +2,176 @@ module Main where
 
 import Prelude
 
-import Actions (Action(..))
+import Actions (Toggle(..))
 import CSSFrameworks.Bootstrap (col)
-import Data (Bound(..), ButtonId(..), Operand(..), Operator(..), OperatorComparison(..))
-import Data.Array (filter, head)
-import Data.Either (Either(..), either, hush)
-import Data.Lens (Lens', _Right, over, view, (%~), (.~))
+import Common (Bound(..), Operand(..), Operator(..), OperatorComparison(..), getOtherOperands)
+import Control.Monad.Error.Class (class MonadThrow)
+import Data.Array as Array
+import Data.Either (Either(..), either)
+import Data.Lens (element, traversed, (^?))
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
-import Data.Set (Set, member, size)
-import Data.Set as Set
-import Data.String (length, take)
-import Data.String.Regex (regex, replace)
-import Data.String.Regex.Flags (global)
+import Data.Traversable (traverse_)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
-import Effect.Aff (Milliseconds(..), delay)
-import Effect.Aff.Class (class MonadAff)
-import Exercise (ExerciseState, genExercise, mkExercise)
+import Effect.Aff (Error, Milliseconds(..), delay, forkAff, joinFiber, killFiber, try)
+import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Class (liftEffect)
+import Effect.Exception as Exception
+import Effect.Random (randomInt)
+import Exercise (ExerciseState, OperandTargetStatus(..))
+import Exercise as Exercise
 import Halogen as H
 import Halogen.Aff (awaitBody, runHalogenAff)
 import Halogen.HTML as HH
 import Halogen.HTML.Properties (classes)
 import Halogen.VDom.Driver (runUI)
-import Header (HeaderState, mkHeader)
-import Keyboard (mkKeyboard)
-import Settings (SettingsError(..), SettingsState, mkSettings, updateTargetOperandBounds)
-import Utils (error, p)
+import Header as Header
+import Keyboard (Output(..))
+import Keyboard as Keyboard
+import Settings (SettingsError(..), flipOperator, getOtherOperandsBounds)
+import Settings as Settings
+import Type.Prelude (Proxy(..))
+import Utils (error, fromJust)
 
 main :: Effect Unit
 main = runHalogenAff do
   body <- awaitBody
   runUI component unit body
 
-component :: forall query input output m. MonadAff m => H.Component query input output m
+type State = Unit
+
+initialState :: Unit
+initialState = unit
+
+component :: forall query input output m. MonadThrow Error m => MonadAff m => H.Component query input output m
 component =
   H.mkComponent
     { initialState: const initialState
-    , render: root
+    , render: const root
     , eval: H.mkEval $ H.defaultEval
         { handleAction = handleAction
-        , initialize = Just Init
+        , initialize = Just ActionInit
         }
     }
 
-type State =
-  { headerState :: HeaderState
-  , settingsState :: SettingsState
-  , exerciseState :: Either SettingsError ExerciseState
-  }
+data Action
+  = ActionKeyboard Keyboard.Output
+  | ActionSettings Settings.Output
+  | ActionInit
 
-initialState :: State
-initialState =
-  { headerState:
-      { counterAnswersCorrect: 0
-      , counterAnswersIncorrect: 0
-      }
-  , exerciseState: Left NoOperandSelected
-  , settingsState:
-      { isOpen: false
-      , operandsSelected: Set.empty
-      , operatorsSelected: Set.empty
-      , operandBoundValue: Map.empty
-      , operandBoundValuePlaceholder: Map.empty
-      , operatorsComparisonSelected: Set.empty
-      , operandTarget: Nothing
-      , buttonErrors: Set.empty
-      }
-  }
-
-type St = { someField :: Int }
-
-st :: St
-st = { someField: 1 }
-
-operandsAll ∷ Array Operand
-operandsAll = [ OpA, OpB, OpC ]
-
-fixNumber :: String -> String
-fixNumber s = either (const "bad") identity res
-  where
-  res = do
-    let replace_ reg repl s_ = regex reg global >>= \x -> pure $ replace x repl s_
-    s1 <- replace_ "[^0-9-]" "" s
-    s2 <- replace_ "(\\d)-+" "$1" s1
-    s3 <- replace_ "^-+" "-" s2
-    s4 <- replace_ "^(-?)0+([1-9])" "$1$2" s3
-    s5 <- replace_ "^-0+$" "-" s4
-    s6 <- replace_ "^0+$" "0" s5
-    pure s6
-
-handleAction :: forall output m. MonadAff m => Action -> H.HalogenM State Action () output m Unit
+handleAction :: forall output m. MonadThrow Error m => MonadAff m => Action -> H.HalogenM State Action Slots output m Unit
 handleAction =
   case _ of
-    NumberButtonClicked (ButtonId bid) -> do
-      modifyAnswerCurrent (\x -> fixNumber (x <> show bid))
-      checkAnswer_
-    MinusButtonClicked -> do
-      modifyAnswerCurrent (\x -> fixNumber ("-" <> x))
-    DeleteButtonClicked ->
-      modifyAnswerCurrent (\x -> take (max (length x - 1) 0) x)
-    ToggleOperator op -> do
-      toggleSelected (p @"operatorsSelected") op
-      toggleNoSelectedError (p @"operatorsSelected") NoOperatorSelected
-      updateTargetOperandBounds_
-      genExercise_
-    ToggleOperatorComparison op -> do
-      H.modify_ (over (p @"settingsState" <<< p @"operatorsComparisonSelected") %~ Set.insert op)
-      toggleNoSelectedError (p @"operatorsComparisonSelected") NoOperatorComparisonSelected
-      updateTargetOperandBounds_
-      genExercise_
-    ToggleOperand op -> do
-      toggleSelected (p @"operandsSelected") op
+    ActionInit -> do
+      traverse_ (H.tell _settings unit <<< Settings.QueryToggle)
+        [ ToggleOperand OpA
+        , ToggleOperand OpB
+        , ToggleOperator OpMinus
+        , ToggleOperatorComparison OpEqual
+        ]
+      traverse_ (H.tell _settings unit) $
+        (\(op /\ bound /\ s) -> Settings.QueryInput op bound s) <$>
+          [ (OpA /\ BoundMin /\ "10")
+          , (OpA /\ BoundMax /\ "20")
+          , (OpB /\ BoundMin /\ "0")
+          , (OpB /\ BoundMax /\ "10")
+          ]
+    ActionKeyboard a ->
+      case a of
+        OutputClicked button -> do
+          answerCurrent <- H.request _exercise unit (Exercise.QueryButtonClicked button)
+          maybe (pure unit) (H.tell _header unit <<< Header.QueryIncrementCorrect) answerCurrent
+    ActionSettings a ->
+      case a of
+        Left err -> H.tell _exercise unit (Exercise.QuerySetState (Exercise.StateError $ Exercise.SettingsError err))
+        Right s -> genExercise_ s
 
-      -- if 2 operands selected, set target operand
-      operands <- H.gets _.settingsState.operandsSelected
-      let
-        operand
-          | size operands == 2 = maybe (error "set has 3 operands") Right (head (filter (\x -> not (member x operands)) operandsAll))
-          | size operands == 1 = Left (OnlyOneOperandSelected (maybe (error "set has one element, but no max") identity (Set.findMax operands)))
-          | Set.isEmpty operands = Left NoOperandSelected
-          | otherwise = error "set has 3 operands"
-      H.modify_ (over (p @"settingsState" <<< p @"operandTarget") .~ hush operand)
-
-      toggleNoSelectedError (p @"operandsSelected") NoOperandSelected
-
-      case operand of
-        Left err -> H.modify_ (_ { exerciseState = Left err })
-        Right _ -> do
-          updateTargetOperandBounds_
-          genExercise_
-    ToggleSettings -> do
-      H.modify_ (over (p @"settingsState" <<< p @"isOpen") %~ not)
-    BoundChanged op bound inp -> do
-      let inp_ = fixNumber inp
-      H.modify_ (over (p @"settingsState" <<< p @"operandBoundValue") %~ Map.insert (op /\ bound) (fixNumber inp))
-
-      -- hack to re-render
-      when (fixNumber inp /= inp)
-        ( do
-            handleAction $ BoundChanged op bound (inp_ <> "9")
-            handleAction $ BoundChanged op bound inp_
-        )
-
-      updateTargetOperandBounds_
-      genExercise_
-    Init -> do
-      handleAction $ ToggleOperand OpA
-      handleAction $ ToggleOperand OpB
-      handleAction $ ToggleOperator OpMinus
-      handleAction $ ToggleOperatorComparison OpEqual
-
-      handleAction $ BoundChanged OpA BoundMin "10"
-      handleAction $ BoundChanged OpA BoundMax "20"
-      handleAction $ BoundChanged OpB BoundMin "0"
-      handleAction $ BoundChanged OpB BoundMax "10"
-      updateTargetOperandBounds_
-      genExercise_
   where
-  toggleNoSelectedError :: forall a. MonadAff m => Lens' SettingsState (Set a) -> SettingsError -> H.HalogenM State Action () output m Unit
-  toggleNoSelectedError l err = do
-    os <- H.gets (view (p @"settingsState" <<< l))
-    H.modify_
-      ( over (p @"settingsState" <<< p @"buttonErrors") %~
-          if
-            Set.isEmpty os then Set.insert err
-          else Set.delete err
-      )
 
-  toggleSelected :: forall a. Ord a => MonadAff m => Lens' SettingsState (Set a) -> a -> H.HalogenM State Action () output m Unit
-  toggleSelected l op = H.modify_ (over (p @"settingsState" <<< l) %~ Set.toggle op)
+  genExercise_ :: Settings.State -> H.HalogenM State Action Slots output m Unit
+  genExercise_ state = do
+    H.tell _exercise unit (Exercise.QuerySetState Exercise.StateWaiting)
+    exerciseF <- liftAff $ forkAff $ genExercise state
+    void $ liftAff $ forkAff $ delay (Milliseconds 1000.0) *> killFiber (Exception.error "timeout") exerciseF
+    exercise <- liftAff $ try $ joinFiber exerciseF
+    let
+      -- err = getError state
+      exercise_ =
+        case exercise of
+          Left _ -> Exercise.StateError Exercise.NoExerciseGenerated
+          Right ex -> either (Exercise.StateError <<< Exercise.SettingsError) Exercise.StateReady ex
+    H.tell _exercise unit (Exercise.QuerySetState exercise_)
 
-  modifyAnswerCurrent :: (String -> String) -> H.HalogenM State Action () output m Unit
-  modifyAnswerCurrent f = H.modify_ $ over (p @"exerciseState" <<< _Right <<< p @"answerCurrent") %~ f
-
-  updateTargetOperandBounds_ :: H.HalogenM State Action () output m Unit
-  updateTargetOperandBounds_ = H.modify_ (over (p @"settingsState") %~ updateTargetOperandBounds)
-
-  genExercise_ :: H.HalogenM State Action () output m Unit
-  genExercise_ = H.gets _.settingsState >>= genExercise >>= \x -> H.modify_ (_ { exerciseState = x })
-
-  checkAnswer_ :: H.HalogenM State Action () output m Unit
-  checkAnswer_ = do
-    state <- H.get
-    case state.exerciseState of
-      Left _ -> pure unit
-      Right exerciseState -> do
+genExercise :: forall m. MonadAff m => Settings.State -> m (Either SettingsError ExerciseState)
+genExercise state = exState
+  where
+  exState =
+    case state.operandTarget of
+      Nothing -> pure $ Left $ fromJust "Target operand undefined, but no error was recorded." state.error
+      Just operandTarget ->
         let
-          f :: (State -> State) -> H.HalogenM State Action () output m Unit
-          f upd = (H.liftAff $ delay $ Milliseconds 1500.0) *> H.modify_ upd *> genExercise_
-        if exerciseState.answerCurrent == show exerciseState.answerCorrect then
-          f
-            ( \x ->
-                x # p @"headerState" <<< p @"counterAnswersCorrect" %~ (_ + 1)
-                  # p @"exerciseState" .~ Left NoExerciseGenerated
-            )
-        else if length exerciseState.answerCurrent == length (show exerciseState.answerCorrect) then
-          f (_ # p @"headerState" <<< p @"counterAnswersIncorrect" %~ (_ + 1))
-        else pure unit
+          (op1 /\ op2) = getOtherOperands operandTarget
+          bounds = getOtherOperandsBounds state operandTarget
+          operators = Array.fromFoldable state.operatorsSelected
+        in
+          case bounds of
+            Left err -> pure $ Left err
+            Right bounds_ -> do
+              operatorIdx <- liftEffect $ randomInt 0 (max (Array.length operators - 1) 0)
+              let operator = operators ^? element operatorIdx traversed
+              case operator of
+                Nothing -> pure $ Left NoOperatorSelected
+                Just operator_ -> do
+                  (val1 /\ val2 /\ ans) <-
+                    case flipOperator operandTarget operator_ of
+                      { isFlipped, operator: OpDivide } -> do
+                        -- TODO
+                        pure (1 /\ 2 /\ 3)
+                      x -> do
+                        val1 <- liftEffect $ randomInt bounds_.op1Min bounds_.op1Max
+                        val2 <- liftEffect $ randomInt bounds_.op2Min bounds_.op2Max
+                        let
+                          f op = (if x.isFlipped then flip else identity) op val1 val2
+                          ans =
+                            case x.operator of
+                              OpPlus -> f (+)
+                              OpMinus -> f (-)
+                              OpMultiply -> f (*)
+                              OpDivide -> error "genExercise: Division was pattern matched above"
+                        pure (val1 /\ val2 /\ ans)
+                  pure $ Right
+                    { operandValue: Map.fromFoldable [ (op1 /\ val1), (op2 /\ val2) ]
+                    , answerCorrect: ans
+                    , operatorCurrent: operator_
+                    ,
+                      -- TODO select randomly
+                      operatorComparisonCurrent: OpEqual
+                    , answerCurrent: ""
+                    , operandTarget
+                    , operandTargetStatus: StatusIncomplete
+                    }
 
+type Slots =
+  ( exercise :: Exercise.Slot Unit
+  , keyboard :: Keyboard.Slot Unit
+  , header :: Header.Slot Unit
+  , settings :: Settings.Slot Unit
+  )
 
-root :: forall m. State -> H.ComponentHTML Action () m
-root state =
+_exercise = Proxy :: Proxy "exercise"
+
+_keyboard = Proxy :: Proxy "keyboard"
+
+_header = Proxy :: Proxy "header"
+
+_settings = Proxy :: Proxy "settings"
+
+root :: forall m. MonadAff m => H.ComponentHTML Action Slots m
+root =
   HH.div [ classes [ col ] ]
-    [ mkHeader state.headerState
-    , mkExercise state.exerciseState
-    , mkKeyboard
-    , mkSettings state.settingsState
+    [ HH.slot_ _header unit Header.component unit
+    , HH.slot_ _exercise unit Exercise.component unit
+    , HH.slot _keyboard unit Keyboard.component unit ActionKeyboard
+    , HH.slot _settings unit Settings.component unit ActionSettings
     ]

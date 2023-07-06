@@ -12,7 +12,9 @@ to generate this file without the comments in this block.
 -}
 { name = "my-project"
 , dependencies =
-  [ "arrays"
+  [ "aff"
+  , "arrays"
+  , "barlow-lens"
   , "console"
   , "css-frameworks"
   , "effect"
@@ -26,12 +28,12 @@ to generate this file without the comments in this block.
   , "prelude"
   , "profunctor-lenses"
   , "random"
+  , "record-format"
   , "strings"
   , "tuples"
   , "typelevel-prelude"
   , "unsafe-coerce"
-  , "record-format"
-  , "aff"
+  , "transformers"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

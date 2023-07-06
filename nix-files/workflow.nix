@@ -1,42 +1,31 @@
-{ workflows, system, name }:
+{ workflows, system, name, scripts }:
 let
-  inherit (workflows.functions.${system}) writeWorkflow expr mkAccessors genAttrsId;
-  inherit (workflows.attrsets.${system}) steps run os nixCI;
-  inherit (workflows.functions.${system}) installNix cacheNixDirs;
+  inherit (workflows.lib.${system})
+    writeWorkflow expr mkAccessors genAttrsId
+    steps run os nixCI cacheNix;
   job1 = "_1_update_flake_locks";
   job2 = "_2_front";
   names = mkAccessors {
     secrets = genAttrsId [ "GITHUB_TOKEN" ];
   };
   workflow =
-    nixCI // {
+    (nixCI { }) // {
       jobs = {
-        "${job1}" = {
-          name = "Update flake locks";
-          runs-on = os.ubuntu-20;
-          steps =
-            [
-              steps.checkout
-              (installNix { })
-              steps.configGitAsGHActions
-              steps.updateLocksAndCommit
-            ];
-        };
+        "${job1}" = (nixCI { }).jobs.nixCI // { strategy.matrix.os = [ os.ubuntu-22 ]; };
         "${job2}" =
           {
             name = "Publish static files";
-            # needs = job1;
             permissions = {
               contents = "write";
             };
             runs-on = os.ubuntu-20;
             steps = [
               steps.checkout
-              (installNix { })
-              (cacheNixDirs { restoreOnly = false; })
+              (steps.installNix { })
+              (steps.cacheNix { })
               {
                 name = "Clean npm cache";
-                run = run.nixRun "npmCleanCache";
+                run = run.nixScript { name = scripts.npmCleanCache.pname; };
               }
               {
                 name = "Cache dependencies";
@@ -60,7 +49,7 @@ let
               }
               {
                 name = "Build";
-                run = run.nixRun "buildGHPages";
+                run = run.nixScript { name = scripts.buildGHPages.pname; };
               }
               {
                 name = "GitHub Pages action";
@@ -71,7 +60,6 @@ let
                   force_orphan = true;
                 };
               }
-              steps.nixStoreCollectGarbage
             ];
           };
       };

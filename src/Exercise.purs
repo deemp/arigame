@@ -2,25 +2,25 @@ module Exercise where
 
 import Prelude
 
-import Actions (Action)
+import Actions (Button(..))
 import CSSFrameworks.Bootstrap (col, dFlex, fwBolder, justifyContentCenter, pe2, ps2, textCenter)
-import ClassNames (cErrorMessage, cExercise)
-import Classes (class HasSymbol, getSymbol)
-import Data (Operand(..), Operator(..), OperatorComparison(..), Unknown(..), getOtherOperands)
-import Data.Array as Array
-import Data.Either (Either(..))
-import Data.Lens (Lens', element, traversed, (^.), (^?))
+import ClassNames (cCorrect, cErrorMessage, cExercise, cIncorrect)
+import Common (class HasSymbol, Operand(..), Operator(..), OperatorComparison(..), Unknown(..), fixNumber, getOtherOperands, getSymbol)
+import Data.Generic.Rep (class Generic)
+import Data.Lens (Lens', over, (%~), (.~), (^.))
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
+import Data.String (take, length)
 import Data.Tuple.Nested ((/\))
-import Effect.Class (class MonadEffect, liftEffect)
-import Effect.Random (randomInt)
+import Effect.Aff (Milliseconds(..), delay)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties (classes)
-import Settings (SettingsError(..), SettingsState, flipOperator, getOperandTarget, getOtherOperandsBounds, renderError)
-import Utils (error, p)
+import Record.Format (format)
+import Settings (SettingsError(..))
+import Utils (b)
 
 type ExerciseState =
   { operandValue :: Map Operand Int
@@ -30,31 +30,131 @@ type ExerciseState =
   , answerCurrent :: String
   , operandTarget :: Operand
   -- empty string means unknown answer
+  , operandTargetStatus :: OperandTargetStatus
   }
 
-defaultExerciseState :: ExerciseState
-defaultExerciseState =
-  { operandValue: Map.fromFoldable [ (OpA /\ 40), (OpB /\ 2) ]
-  , answerCorrect: 42
-  , operatorCurrent: OpPlus
-  , operatorComparisonCurrent: OpEqual
-  , answerCurrent: ""
-  , operandTarget: OpC
+data OperandTargetStatus
+  = StatusIncomplete
+  | StatusIsCorrect Boolean
+
+data ExerciseError
+  = SettingsError SettingsError
+  | NoExerciseGenerated
+
+data State
+  = StateError ExerciseError
+  | StateWaiting
+  | StateReady ExerciseState
+
+derive instance Generic State _
+
+defaultState :: State
+defaultState = StateWaiting
+
+data Query (a :: Type)
+  = QueryButtonClicked Button (Boolean -> a)
+  | QuerySetState State a
+
+data Action = ActionInit
+
+type Slot id = forall output. H.Slot Query output id
+
+component :: forall input output m. MonadAff m => H.Component Query input output m
+component = H.mkComponent
+  { initialState: const defaultState
+  , render
+  , eval: H.mkEval H.defaultEval
+      { handleAction = handleAction
+      , initialize = Just ActionInit
+      , handleQuery = handleQuery
+      }
   }
+  where
+  -- TODO handle input
+  handleAction :: Action -> H.HalogenM State Action () output m Unit
+  handleAction = case _ of
+    ActionInit -> H.modify_ (const StateWaiting)
 
--- TODO use local errors
--- data ExerciseError = NoOperatorSelected
+  handleQuery :: forall a. Query a -> H.HalogenM State Action () output m (Maybe a)
+  handleQuery = case _ of
+    QueryButtonClicked button reply ->
+      case button of
+        ButtonNumber bid -> do
+          modifyAnswerCurrent (\x -> fixNumber (x <> show bid))
+          checkAnswer_
+        ButtonMinus -> do
+          modifyAnswerCurrent (\x -> fixNumber ("-" <> x))
+          pure Nothing
+        ButtonDelete -> do
+          modifyAnswerCurrent (\x -> take (max (length x - 1) 0) x)
+          pure Nothing
+      where
+      modifyAnswerCurrent :: (String -> String) -> H.HalogenM State Action () output m Unit
+      modifyAnswerCurrent f = H.modify_ $ over (b @"%StateReady.answerCurrent") %~ f
 
-mkExercise :: forall m. Either SettingsError ExerciseState -> H.ComponentHTML Action () m
-mkExercise state = do
+      checkAnswer_ :: H.HalogenM State Action () output m (Maybe a)
+      checkAnswer_ = do
+        state <- H.get
+        let
+          result =
+            case state of
+              StateReady state_
+                | state_.answerCurrent == show state_.answerCorrect -> Just true
+                | length state_.answerCurrent == length (show state_.answerCorrect) -> Just false
+              _ -> Nothing
+        -- TODO show correct answer
+        case result of
+          Nothing -> H.modify_ (over (b @"%StateReady.operandTargetStatus") .~ StatusIncomplete)
+          Just c -> do
+            H.modify_ (over (b @"%StateReady.operandTargetStatus") .~ StatusIsCorrect c)
+            liftAff $ delay (Milliseconds 500.0)
+            unless c do
+              H.modify_ (over (b @"%StateReady") %~ \s -> s { answerCurrent = show s.answerCorrect })
+              H.modify_ (over (b @"%StateReady.operandTargetStatus") .~ StatusIsCorrect true)
+              liftAff $ delay (Milliseconds 700.0)
+        pure $ reply <$> result
+    QuerySetState state a -> do
+      H.modify_ $ const state
+      pure $ Just a
+
+renderError :: ExerciseError -> String
+renderError =
+  case _ of
+    SettingsError err ->
+      case err of
+        NoOperandSelected -> format @"Нажми на '{a}' и '{b}'" { a: getSymbol OpA, b: getSymbol OpB }
+        NoOperatorSelected ->
+          format
+            @"Нажми на '{plus}', '{minus}' или '{multiply}'"
+            { plus: getSymbol OpPlus, minus: getSymbol OpMinus, multiply: getSymbol OpMultiply }
+        NoOperatorComparisonSelected -> format @"Нажми на '{eq}'" { eq: getSymbol OpEqual }
+        NoBoundSet op bound -> format @"У '{op}' напиши '{bound}'" { op: getSymbol op, bound: getSymbol bound }
+        BoundMinGreaterThanBoundMax op -> format @"У '{op}' 'Мин' больше, чем 'Макс'" { op: getSymbol op }
+        OnlyOneOperandSelected op ->
+          let
+            op1 /\ op2 = (getOtherOperands op)
+          in
+            format @"Нажми на '{op1}' или '{op2}'" { op1: getSymbol op1, op2: getSymbol op2 }
+    NoExerciseGenerated -> "Не смог придумать пример :("
+
+render :: forall m. State -> H.ComponentHTML Action () m
+render state = do
   let
     content =
       case state of
-        Left err -> HH.div [ classes [ dFlex, justifyContentCenter, cErrorMessage ] ] [ HH.text $ renderError err ]
-        Right state_ ->
+        StateError err ->
+          HH.div
+            [ classes [ dFlex, justifyContentCenter, cErrorMessage ] ]
+            [ HH.text $ renderError err ]
+        StateReady state_ ->
           let
+            csAnswerStatus =
+              case state_.operandTargetStatus of
+                StatusIncomplete -> []
+                StatusIsCorrect c -> [ if c then cIncorrect else cCorrect ]
+
             renderOperand :: Operand -> H.ComponentHTML Action () m
-            renderOperand op = HH.span [ classes [ ps2, pe2 ] ]
+            renderOperand op = HH.span [ classes ([ ps2, pe2 ] <> csAnswerStatus) ]
               [ HH.text
                   ( if state_.operandTarget == op then
                       if state_.answerCurrent == "" then getSymbol Unknown else state_.answerCurrent
@@ -70,11 +170,13 @@ mkExercise state = do
           in
             HH.p_
               [ renderOperand OpA
-              , render_ (p @"operatorCurrent")
+              , render_ (b @"operatorCurrent")
               , renderOperand OpB
-              , render_ (p @"operatorComparisonCurrent")
+              , render_ (b @"operatorComparisonCurrent")
               , renderOperand OpC
               ]
+        StateWaiting ->
+          HH.p_ [ HH.text "Придумываю пример..." ]
   HH.div [ classes [ dFlex, justifyContentCenter ] ]
     [ HH.div [ classes [ col, cExercise ] ]
         [ HH.div [ classes [ fwBolder, textCenter, cExercise ] ]
@@ -82,51 +184,3 @@ mkExercise state = do
             ]
         ]
     ]
-
-genExercise :: forall m. MonadEffect m => SettingsState -> m (Either SettingsError ExerciseState)
-genExercise state = exState
-  where
-  exState =
-    case getOperandTarget state of
-      Left err -> pure (Left err)
-      Right operandTarget ->
-        let
-          (op1 /\ op2) = getOtherOperands operandTarget
-          bounds = getOtherOperandsBounds state operandTarget
-          operators = Array.fromFoldable state.operatorsSelected
-        in
-          case bounds of
-            Left err -> pure $ Left err
-            Right bounds_ -> do
-              operatorIdx <- liftEffect $ randomInt 0 (max (Array.length operators - 1) 0)
-              let operator = operators ^? element operatorIdx traversed
-              case operator of
-                Nothing -> pure $ Left NoOperatorSelected
-                Just operator_ -> do
-                  (val1 /\ val2 /\ ans) <-
-                    case flipOperator operandTarget operator_ of
-                      { isFlipped, operator: OpDivide } -> do
-                        -- TODO
-                        pure (1 /\ 2 /\ 3)
-                      x -> do
-                        val1 <- liftEffect $ randomInt bounds_.op1Min bounds_.op1Max
-                        val2 <- liftEffect $ randomInt bounds_.op2Min bounds_.op2Max
-                        let
-                          f op = (if x.isFlipped then flip else identity) op val1 val2
-                          ans =
-                            case x.operator of
-                              OpPlus -> f (+)
-                              OpMinus -> f (-)
-                              OpMultiply -> f (*)
-                              OpDivide -> error "genExercise: Division was pattern matched above"
-                        pure (val1 /\ val2 /\ ans)
-                  pure $ Right $
-                    { operandValue: Map.fromFoldable [ (op1 /\ val1), (op2 /\ val2) ]
-                    , answerCorrect: ans
-                    , operatorCurrent: operator_
-                    ,
-                      -- TODO select randomly
-                      operatorComparisonCurrent: OpEqual
-                    , answerCurrent: ""
-                    , operandTarget
-                    }

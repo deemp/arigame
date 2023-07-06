@@ -114,3 +114,17 @@ in  upstream
     , repo = "https://github.com/deemp/purescript-record-format"
     , version = "8b44ff6dd8b30ea64f41694cd9384a247d1adb77"
     }
+  with barlow-lens = {
+    dependencies = ["either"
+  , "foldable-traversable"
+  , "lists"
+  , "maybe"
+  , "newtype"
+  , "prelude"
+  , "profunctor"
+  , "profunctor-lenses"
+  , "tuples"
+  , "typelevel-prelude"]
+  , repo = "https://github.com/sigma-andex/purescript-barlow-lens"
+  , version = "v1.0.0"
+  }
