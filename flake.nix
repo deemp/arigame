@@ -59,7 +59,7 @@
               name = "ci";
               inherit workflows system scripts;
             };
-            inherit (mkFlakesTools [ "." ]) updateLocks pushToCachix;
+            inherit (mkFlakesTools { dirs = [ "." ]; root = ./.; }) updateLocks pushToCachix;
           } // scripts;
 
           devShells.default = mkShell {
