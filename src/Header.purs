@@ -14,7 +14,7 @@ import Halogen.HTML.Events (onClick)
 import Halogen.HTML.Properties (ButtonType(..), classes, type_)
 import IProps (aAriaControls, aDataBsTarget, aDataBsToggle)
 import Settings (offcanvasBottomId)
-import Utils (b)
+import Utils (bw)
 
 type State =
   { correct :: Int
@@ -45,7 +45,7 @@ component = H.mkComponent
   handleQuery :: forall a. Query a -> H.HalogenM State Action () output m (Maybe a)
   handleQuery = case _ of
     QueryIncrementCorrect c reply ->
-      H.modify_ (over (if c then b @"correct" else b @"incorrect") %~ (_ + 1)) $> Just reply
+      H.modify_ (over (if c then bw @"correct" else bw @"incorrect") %~ (_ + 1)) $> Just reply
 
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =
@@ -76,8 +76,8 @@ render state =
                             ]
                         ]
                   in
-                    [ mkCounter cCorrect biCheckCircleFill (b @"correct") justifyContentCenter
-                    , mkCounter cIncorrect biXCircleFill (b @"incorrect") justifyContentStart
+                    [ mkCounter cCorrect biCheckCircleFill (bw @"correct") justifyContentCenter
+                    , mkCounter cIncorrect biXCircleFill (bw @"incorrect") justifyContentStart
                     ]
                 )
             )

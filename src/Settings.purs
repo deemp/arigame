@@ -27,7 +27,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events (onClick, onValueInput)
 import Halogen.HTML.Properties (ButtonType(..), classes, for, id, placeholder, tabIndex, type_, value)
 import IProps (aAriaLabel, aDataBsDismiss, aDisabled, aType)
-import Utils (b, error, fromJust, singletonIf)
+import Utils (bw, error, fromJust, singletonIf)
 
 offcanvasBottomId :: String
 offcanvasBottomId = "offcanvas-bottom"
@@ -104,17 +104,17 @@ component = H.mkComponent
           do
             case toggle of
               ToggleOperator op -> do
-                toggleSelected (b @"operatorsSelected") op
+                toggleSelected (bw @"operatorsSelected") op
               ToggleOperatorComparison op -> do
                 -- TODO toggle, not only insert
-                H.modify_ (over (b @"operatorsComparisonSelected") %~ Set.insert op)
+                H.modify_ (over (bw @"operatorsComparisonSelected") %~ Set.insert op)
               ToggleOperand op -> do
-                toggleSelected (b @"operandsSelected") op
+                toggleSelected (bw @"operandsSelected") op
               ToggleSettings -> do
-                H.modify_ (over (b @"isOpen") %~ not)
+                H.modify_ (over (bw @"isOpen") %~ not)
         ActionInput op bound inp -> do
           let inp_ = fixNumber inp
-          H.modify_ (over (b @"operandBoundValue") %~ Map.insert (op /\ bound) inp_)
+          H.modify_ (over (bw @"operandBoundValue") %~ Map.insert (op /\ bound) inp_)
 
           -- FIXME Hack to trigger state change and re-render
           when (inp_ /= inp)
@@ -136,7 +136,7 @@ update_ state = state { error = Nothing } # updateOperators # updateOperandTarge
 
 updateOperators :: State -> State
 updateOperators state
-  | Set.size state.operatorsSelected == 0 = state # b @"error" ?~ NoOperatorSelected
+  | Set.size state.operatorsSelected == 0 = state # bw @"error" ?~ NoOperatorSelected
   | otherwise = state
 
 updateOperandTarget :: State -> State
@@ -157,8 +157,8 @@ updateOperandTarget state = state_
     | otherwise = error "Set can't have 3 operands"
   state_ =
     case newOperand of
-      Left err -> state # b @"error" ?~ err # b @"operandTarget" .~ Nothing
-      Right op -> state # b @"operandTarget" ?~ op
+      Left err -> state # bw @"error" ?~ err # bw @"operandTarget" .~ Nothing
+      Right op -> state # bw @"operandTarget" ?~ op
 
 updateOperandTargetBounds :: State -> State
 updateOperandTargetBounds state =
@@ -168,10 +168,10 @@ updateOperandTargetBounds state =
       let
         modifyBounds operators =
           let
-            modifyVal mod_ = state # b @"operandBoundValue" %~ mod_
+            modifyVal mod_ = state # bw @"operandBoundValue" %~ mod_
           in
             case getOtherOperandsBounds state op of
-              Left err -> modifyVal (Map.delete (op /\ BoundMin) <<< Map.delete (op /\ BoundMax)) # b @"error" ?~ err
+              Left err -> modifyVal (Map.delete (op /\ BoundMin) <<< Map.delete (op /\ BoundMax)) # bw @"error" ?~ err
               Right bounds -> do
                 let (mini /\ maxi) = calculateBounds (Array.fromFoldable operators) bounds
                 modifyVal (Map.insert (op /\ BoundMin) (show mini) <<< Map.insert (op /\ BoundMax) (show maxi))

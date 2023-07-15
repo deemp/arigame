@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Array (intercalate)
 import Data.Lens.Barlow (barlow)
-import Data.Maybe (fromJust, maybe)
+import Data.Maybe (maybe)
 import Effect.Exception (throw)
 import Halogen (ClassName(..))
 import Halogen.HTML (IProp)
@@ -23,6 +23,6 @@ classes_ a = [ class_ $ ClassName $ intercalate " " a ]
 error :: ∀ a. String -> a
 error = unsafeCoerce <<< throw
 
-b = barlow
+bw = barlow
 
 fromJust msg = maybe (error msg) identity

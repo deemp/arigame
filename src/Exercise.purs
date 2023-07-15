@@ -20,7 +20,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties (classes)
 import Record.Format (format)
 import Settings (SettingsError(..))
-import Utils (b)
+import Utils (bw)
 
 type ExerciseState =
   { operandValue :: Map Operand Int
@@ -90,7 +90,7 @@ component = H.mkComponent
           pure Nothing
       where
       modifyAnswerCurrent :: (String -> String) -> H.HalogenM State Action () output m Unit
-      modifyAnswerCurrent f = H.modify_ $ over (b @"%StateReady.answerCurrent") %~ f
+      modifyAnswerCurrent f = H.modify_ $ over (bw @"%StateReady.answerCurrent") %~ f
 
       checkAnswer_ :: H.HalogenM State Action () output m (Maybe a)
       checkAnswer_ = do
@@ -104,13 +104,13 @@ component = H.mkComponent
               _ -> Nothing
         -- TODO show correct answer
         case result of
-          Nothing -> H.modify_ (over (b @"%StateReady.operandTargetStatus") .~ StatusIncomplete)
+          Nothing -> H.modify_ (over (bw @"%StateReady.operandTargetStatus") .~ StatusIncomplete)
           Just c -> do
-            H.modify_ (over (b @"%StateReady.operandTargetStatus") .~ StatusIsCorrect c)
+            H.modify_ (over (bw @"%StateReady.operandTargetStatus") .~ StatusIsCorrect c)
             liftAff $ delay (Milliseconds 500.0)
             unless c do
-              H.modify_ (over (b @"%StateReady") %~ \s -> s { answerCurrent = show s.answerCorrect })
-              H.modify_ (over (b @"%StateReady.operandTargetStatus") .~ StatusIsCorrect true)
+              H.modify_ (over (bw @"%StateReady") %~ \s -> s { answerCurrent = show s.answerCorrect })
+              H.modify_ (over (bw @"%StateReady.operandTargetStatus") .~ StatusIsCorrect true)
               liftAff $ delay (Milliseconds 700.0)
         pure $ reply <$> result
     QuerySetState state a -> do
@@ -170,9 +170,9 @@ render state = do
           in
             HH.p_
               [ renderOperand OpA
-              , render_ (b @"operatorCurrent")
+              , render_ (bw @"operatorCurrent")
               , renderOperand OpB
-              , render_ (b @"operatorComparisonCurrent")
+              , render_ (bw @"operatorComparisonCurrent")
               , renderOperand OpC
               ]
         StateWaiting ->
