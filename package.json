@@ -22,6 +22,7 @@
     "postquick-start": "npm run dev",
     "prebuild:min": "rm -rf min && mkdir min && cp -r dev/* min/",
     "build:min": "spago bundle-app --to min/index.js --minify && npx sass static:min && npx parcel build min/index.html",
+    "prebuild:gh-pages": "npm cache clean --force",
     "build:gh-pages": "npm i && npm run build:min && cp -TR min docs",
     "build:prod": "npm run build:min && cp -TR min prod",
     "postbuild:prod": "npx http-server prod -o"

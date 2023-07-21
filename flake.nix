@@ -5,7 +5,7 @@
       inputs_ =
         let flakes = inputs.flakes.flakes; in
         {
-          inherit (flakes.source-flake) nixpkgs flake-utils;
+          inherit (flakes.source-flake) nixpkgs flake-utils formatter;
           inherit (flakes) drv-tools devshell codium workflows flakes-tools;
           purescript-tools = flakes.language-tools.purescript;
           inherit flakes;
@@ -34,7 +34,8 @@
               runtimeInputs = [ pkgs.nodejs_18 pkgs.spago purescript-tools.purescript ];
             };
             npmCleanCache = {
-              text = ''${pkgs.nodejs_18}/bin/npm cache clean --force'';
+              text = ''npm cache clean --force'';
+              runtimeInputs = [ pkgs.nodejs_18 ];
             };
             buildGHPages = {
               text = ''npm run build:gh-pages'';
@@ -59,7 +60,7 @@
               name = "ci";
               inherit workflows system scripts;
             };
-            inherit (mkFlakesTools { dirs = [ "." ]; root = ./.; }) updateLocks pushToCachix;
+            inherit (mkFlakesTools { dirs = [ "." ]; root = ./.; }) updateLocks saveFlakes format;
           } // scripts;
 
           devShells.default = mkShell {
@@ -88,6 +89,7 @@
         in
         {
           inherit packages devShells;
+          formatter = inputs.formatter.${system};
         });
     in
     outputs;
