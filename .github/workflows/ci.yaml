@@ -21,7 +21,7 @@ jobs:
         with:
           key: nix-ubuntu-22.04-job-${{ hashfiles('**/flake.nix', '**/flake.lock') }}
           linux-gc-enabled: true
-          linux-max-store-size: 5000000000
+          linux-max-store-size: 1300000000
           restore-keys: |
             nix-ubuntu-22.04-job-
       - name: Remove old cache profiles
@@ -61,11 +61,11 @@ jobs:
             output
           restore-keys: |
             "${{ runner.os }}-node-
-      - name: Build
+      - name: Build app
         run: |-
           nix profile install .#buildGHPages
           nix run .#buildGHPages
-      - name: GitHub Pages action
+      - name: Publish app on GitHub Pages
         uses: peaceiris/actions-gh-pages@v3.9.3
         with:
           force_orphan: true

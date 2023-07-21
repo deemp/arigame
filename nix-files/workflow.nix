@@ -10,7 +10,7 @@ let
         runsOn = os.ubuntu-22;
         cacheNixArgs = {
           linuxGCEnabled = true;
-          linuxMaxStoreSize = 5000000000;
+          linuxMaxStoreSize = 1300000000;
         };
         doSaveFlakes = false;
         steps = _: [
@@ -34,11 +34,11 @@ let
             };
           }
           {
-            name = "Build";
+            name = "Build app";
             run = run.nixScript { name = scripts.buildGHPages.pname; };
           }
           {
-            name = "GitHub Pages action";
+            name = "Publish app on GitHub Pages";
             uses = "peaceiris/actions-gh-pages@v3.9.3";
             "with" = {
               github_token = expr names.secrets.GITHUB_TOKEN;
