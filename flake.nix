@@ -1,23 +1,15 @@
 {
   inputs.flakes.url = "github:deemp/flakes";
   outputs = inputs:
-    let
-      inputs_ =
-        let flakes = inputs.flakes.flakes; in
-        {
-          inherit (flakes.source-flake) nixpkgs flake-utils formatter;
-          inherit (flakes) drv-tools devshell codium workflows flakes-tools;
-          purescript-tools = flakes.language-tools.purescript;
-          inherit flakes;
-        };
-
-      outputs = outputs_ { } // { inputs = inputs_; outputs = outputs_; };
-
-      outputs_ =
-        inputs__:
-        let inputs = inputs_ // inputs__; in
-
-        inputs.flake-utils.lib.eachDefaultSystem (system:
+    let flakes = inputs.flakes; in
+    flakes.makeFlake {
+      inputs = {
+        inherit (inputs.flakes.all)
+          nixpkgs lima formatter codium drv-tools devshell
+          flakes-tools workflows purescript-tools;
+        inherit flakes;
+      };
+      perSystem = { inputs, system }:
         let
           pkgs = inputs.nixpkgs.legacyPackages.${system};
           purescript-tools = inputs.purescript-tools.packages.${system};
@@ -90,9 +82,8 @@
         {
           inherit packages devShells;
           formatter = inputs.formatter.${system};
-        });
-    in
-    outputs;
+        };
+    };
 
   nixConfig = {
     extra-substituters = [
