@@ -11,6 +11,7 @@ import Data.Lens (Lens', over, (%~), (.~), (^.))
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), maybe)
+import Data.Show.Generic (genericShow)
 import Data.String (take, length)
 import Data.Tuple.Nested ((/\))
 import Effect.Aff (Milliseconds(..), delay)
@@ -37,9 +38,17 @@ data OperandTargetStatus
   = StatusIncomplete
   | StatusIsCorrect Boolean
 
+derive instance Generic OperandTargetStatus _
+instance Show OperandTargetStatus where
+  show = genericShow
+
 data ExerciseError
   = SettingsError SettingsError
   | NoExerciseGenerated
+
+derive instance Generic ExerciseError _
+instance Show ExerciseError where
+  show = genericShow
 
 data State
   = StateError ExerciseError

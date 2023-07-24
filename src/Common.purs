@@ -1,9 +1,10 @@
 module Common where
 
-
 import Prelude
 
 import Data.Either (either)
+import Data.Generic.Rep (class Generic)
+import Data.Show.Generic (genericShow)
 import Data.String.Regex (replace, regex)
 import Data.String.Regex.Flags (global)
 import Data.Tuple (Tuple)
@@ -13,6 +14,10 @@ class HasSymbol a where
   getSymbol :: a -> String
 
 data Operand = OpA | OpB | OpC
+
+derive instance Generic Operand _
+instance Show Operand where
+  show = genericShow
 
 derive instance Eq Operand
 derive instance Ord Operand
@@ -37,6 +42,9 @@ data Operator = OpPlus | OpMinus | OpMultiply | OpDivide
 
 derive instance Eq Operator
 derive instance Ord Operator
+derive instance Generic Operator _
+instance Show Operator where
+  show = genericShow
 
 instance HasSymbol Operator where
   getSymbol = case _ of
@@ -48,7 +56,10 @@ instance HasSymbol Operator where
 data OperatorComparison = OpEqual
 
 derive instance Eq OperatorComparison
-derive instance Ord OperatorComparison
+derive instance Ord OperatorComparison  
+derive instance Generic OperatorComparison _
+instance Show OperatorComparison where show = genericShow
+
 
 instance HasSymbol OperatorComparison where
   getSymbol = case _ of
@@ -61,6 +72,10 @@ instance HasSymbol Unknown where
     Unknown -> "?"
 
 data Bound = BoundMin | BoundMax
+
+derive instance Generic Bound _
+instance Show Bound where
+  show = genericShow
 
 derive instance Eq Bound
 derive instance Ord Bound

@@ -17,6 +17,7 @@ import Effect (Effect)
 import Effect.Aff (Error, Milliseconds(..), delay, forkAff, joinFiber, killFiber, try)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
+import Effect.Console as Console
 import Effect.Exception as Exception
 import Effect.Random (randomInt)
 import Exercise (ExerciseState, OperandTargetStatus(..))
@@ -81,7 +82,14 @@ handleAction =
       case a of
         OutputClicked button -> do
           answerCurrent <- H.request _exercise unit (Exercise.QueryButtonClicked button)
-          maybe (pure unit) (H.tell _header unit <<< Header.QueryIncrementCorrect) answerCurrent
+          maybe (pure unit)
+            ( \x ->
+                do
+                  H.tell _header unit (Header.QueryIncrementCorrect x)
+                  state <- H.request _settings unit Settings.QueryState
+                  maybe (pure unit) genExercise_ state
+            )
+            answerCurrent
     ActionSettings a ->
       case a of
         Left err -> H.tell _exercise unit (Exercise.QuerySetState (Exercise.StateError $ Exercise.SettingsError err))
@@ -95,8 +103,8 @@ handleAction =
     exerciseF <- liftAff $ forkAff $ genExercise state
     void $ liftAff $ forkAff $ delay (Milliseconds 1000.0) *> killFiber (Exception.error "timeout") exerciseF
     exercise <- liftAff $ try $ joinFiber exerciseF
+    liftEffect $ Console.log (show exercise)
     let
-      -- err = getError state
       exercise_ =
         case exercise of
           Left _ -> Exercise.StateError Exercise.NoExerciseGenerated

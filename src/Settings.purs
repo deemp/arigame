@@ -10,6 +10,7 @@ import Data.Array (concat, elem, filter, head, zip)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Foldable (maximum, minimum)
+import Data.Generic.Rep (class Generic)
 import Data.Int (fromString)
 import Data.Lens (Lens', over, (%~), (.~), (?~))
 import Data.Map (Map)
@@ -17,6 +18,7 @@ import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Set (Set, member, size)
 import Data.Set as Set
+import Data.Show.Generic (genericShow)
 import Data.String (length)
 import Data.Tuple (Tuple)
 import Data.Tuple.Nested (type (/\), (/\))
@@ -43,6 +45,10 @@ data SettingsError
   | NoBoundSet Operand Bound
   | BoundMinGreaterThanBoundMax Operand
   | OnlyOneOperandSelected Operand
+
+derive instance Generic SettingsError _
+instance Show SettingsError where
+  show = genericShow
 
 type State =
   { isOpen :: Boolean
@@ -92,7 +98,7 @@ component = H.mkComponent
   where
   handleQuery :: forall a. Query a -> H.HalogenM State Action () Output m (Maybe a)
   handleQuery = case _ of
-    QueryState reply -> H.get >>= (pure <<< Just <<< reply)
+    QueryState reply -> (pure <<< Just <<< reply) =<< H.get
     QueryToggle toggle reply -> handleAction (ActionToggle toggle) $> Just reply
     QueryInput operand bound s reply -> handleAction (ActionInput operand bound s) $> Just reply
 
