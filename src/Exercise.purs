@@ -68,6 +68,9 @@ data Action = ActionInit
 
 type Slot id = forall output. H.Slot Query output id
 
+_DELAY_SHOW_CORRECT = 1000.0
+_DELAY_SHOW_NEXT = 1000.0
+
 component :: forall input output m. MonadAff m => H.Component Query input output m
 component = H.mkComponent
   { initialState: const defaultState
@@ -116,11 +119,11 @@ component = H.mkComponent
           Nothing -> H.modify_ (over (bw @"%StateReady.operandTargetStatus") .~ StatusIncomplete)
           Just c -> do
             H.modify_ (over (bw @"%StateReady.operandTargetStatus") .~ StatusIsCorrect c)
-            liftAff $ delay (Milliseconds 500.0)
+            liftAff $ delay (Milliseconds _DELAY_SHOW_CORRECT)
             unless c do
               H.modify_ (over (bw @"%StateReady") %~ \s -> s { answerCurrent = show s.answerCorrect })
               H.modify_ (over (bw @"%StateReady.operandTargetStatus") .~ StatusIsCorrect true)
-              liftAff $ delay (Milliseconds 700.0)
+              liftAff $ delay (Milliseconds _DELAY_SHOW_NEXT)
         pure $ reply <$> result
     QuerySetState state a -> do
       H.modify_ $ const state
@@ -157,20 +160,23 @@ render state = do
             [ HH.text $ renderError err ]
         StateReady state_ ->
           let
-            csAnswerStatus =
+            csAnswerStatus op =
               case state_.operandTargetStatus of
                 StatusIncomplete -> []
-                StatusIsCorrect c -> [ if c then cIncorrect else cCorrect ]
+                StatusIsCorrect c ->
+                  if state_.operandTarget == op then [ if c then cCorrect else cIncorrect ]
+                  else []
 
             renderOperand :: Operand -> H.ComponentHTML Action () m
-            renderOperand op = HH.span [ classes ([ ps2, pe2 ] <> csAnswerStatus) ]
+            renderOperand op = HH.span [ classes ([ ps2, pe2 ] <> csAnswerStatus op) ]
               [ HH.text
                   ( if state_.operandTarget == op then
                       if state_.answerCurrent == "" then getSymbol Unknown else state_.answerCurrent
-                    else maybe
-                      (getSymbol Unknown)
-                      (\x -> (if x < 0 then (\y -> "(" <> y <> ")") else identity) (show x))
-                      (Map.lookup op state_.operandValue)
+                    else
+                      maybe
+                        (getSymbol Unknown)
+                        (\x -> (if x < 0 then (\y -> "(" <> y <> ")") else identity) (show x))
+                        (Map.lookup op state_.operandValue)
                   )
               ]
 
