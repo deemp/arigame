@@ -30,22 +30,26 @@ jobs:
         run: |
           git config --global user.name github-actions
           git config --global user.email github-actions@github.com
-      - name: Format Nix files
-        run: |-
-          nix profile install .#format
-          nix run .#format
       - name: Update flake locks
         run: |-
           nix profile install .#updateLocks
           nix run .#updateLocks
+      - name: Format Nix files
+        run: |-
+          nix profile install .#format
+          nix run .#format
       - name: Commit & Push
         run: |-
+          git pull --rebase --autostash
+
           git add .
+
           git commit \
             -m "action" \
-            -m "Format Nix files" \
             -m "Update flake locks" \
+            -m "Format Nix files" \
             || echo "commit failed!"
+
           git push
       - name: Clean npm cache
         run: |-

@@ -13,7 +13,7 @@ let
           linuxMaxStoreSize = 1300000000;
         };
         doSaveFlakes = false;
-        steps = _: [
+        steps = { ... }: [
           {
             name = "Clean npm cache";
             run = run.nixScript { name = scripts.npmCleanCache.pname; };
