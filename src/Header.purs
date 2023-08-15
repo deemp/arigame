@@ -5,7 +5,7 @@ import Prelude
 import CSSFrameworks.Bootstrap (alignItemsCenter, btn, col, dFlex, justifyContentCenter, justifyContentEnd, justifyContentStart, m0, p2, pb1, pe1, ps1, pt1)
 import CSSFrameworks.BootstrapIcons (bi, biCheckCircleFill, biGearFill, biXCircleFill)
 import ClassNames (cCorrect, cCounter, cHeader, cIncorrect, cSettings)
-import Data.Lens (over, view, (%~))
+import Data.Lens (over, view, (%~), (.~))
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
@@ -31,7 +31,9 @@ data Action = ActionToggleSettings
 
 type Slot id = forall output. H.Slot Query output id
 
-data Query (a :: Type) = QueryIncrementCorrect Boolean a
+data Query (a :: Type)
+  = QueryIncrementCorrect Boolean a
+  | ResetCounters a
 
 component :: forall input output m. MonadAff m => H.Component Query input output m
 component = H.mkComponent
@@ -46,6 +48,13 @@ component = H.mkComponent
   handleQuery = case _ of
     QueryIncrementCorrect c reply ->
       H.modify_ (over (if c then bw @"correct" else bw @"incorrect") %~ (_ + 1)) $> Just reply
+    ResetCounters reply -> do
+      H.modify_
+        ( \x -> x
+            # bw @"correct" .~ 0
+            # bw @"incorrect" .~ 0
+        )
+      pure $ Just reply
 
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =

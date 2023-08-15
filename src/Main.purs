@@ -93,9 +93,11 @@ handleAction =
     ActionSettings a ->
       case a of
         Left err -> H.tell _exercise unit (Exercise.QuerySetState (Exercise.StateError $ Exercise.SettingsError err))
-        Right s -> genExercise_ s
-
+        Right s -> do
+          resetCounters
+          genExercise_ s
   where
+  resetCounters = H.tell _header unit Header.ResetCounters
 
   genExercise_ :: Settings.State -> H.HalogenM State Action Slots output m Unit
   genExercise_ state = do
