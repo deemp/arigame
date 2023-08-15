@@ -1,4 +1,4 @@
-{ workflows, system, name, scripts }:
+{ workflows, system, name, packages }:
 let
   inherit (workflows.lib.${system})
     writeWorkflow expr mkAccessors genAttrsId
@@ -16,7 +16,7 @@ let
         steps = { ... }: [
           {
             name = "Clean npm cache";
-            run = run.nixScript { name = scripts.npmCleanCache.pname; };
+            run = run.nixScript { name = packages.npmCleanCache.pname; };
           }
           {
             name = "Cache app dependencies";
@@ -35,7 +35,7 @@ let
           }
           {
             name = "Build app";
-            run = run.nixScript { name = scripts.buildGHPages.pname; };
+            run = run.nixScript { name = packages.buildGHPages.pname; };
           }
           {
             name = "Publish app on GitHub Pages";
